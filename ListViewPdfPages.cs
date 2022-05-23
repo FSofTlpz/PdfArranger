@@ -425,15 +425,23 @@ namespace PdfArranger {
          return images;
       }
 
+      /// <summary>
+      /// liefert ein Bild der gewünschten Seite
+      /// </summary>
+      /// <param name="idx">Index in der akt. Auflistung</param>
+      /// <param name="dpi">Auflösung des Bildes</param>
+      /// <returns></returns>
       public Image GetImage4Page(int idx, int dpi) {
          if (0 <= idx && idx < dataCache.Count) {
             Image img = null;
             if (dataCache[idx].Filename == PageData.IMAGEPSEUDOFILE)  // (noch) keine PDF-Seite, sondern ein Bild (gescannt oder importiert)
                img = dataCache[idx].Image.Clone() as Image;
-            else
-               img = new PdfFileWrapper(dataCache[idx].Filename,
+            else {
+               PageData pd = dataCache[idx];
+               img = new PdfFileWrapper(pd.Filename,
                                         MyPasswordProvider,
-                                        dataCache[idx].Password).GetPageImage(dataCache[idx].PageNo, dpi);
+                                        pd.Password).GetPageImage(pd.PageNo, dpi);
+            }
 
             PageData.RotateImage(img, dataCache[idx].Rotation);
             return img;
@@ -498,6 +506,21 @@ namespace PdfArranger {
             OnItemCountChanged?.Invoke(this, new EventArgs());
          }
       }
+
+      /// <summary>
+      /// liefert den akt. Index dieser Seite
+      /// </summary>
+      /// <param name="filename"></param>
+      /// <param name="pageidx"></param>
+      /// <returns>negativ wenn nicht gefunden</returns>
+      public int GetIdx4Page(string filename, int pageidx) {
+         for (int i = 0; i < dataCache.Count; i++) 
+            if (dataCache[i].PageNo == pageidx &&
+                dataCache[i].Filename == filename) 
+               return i;
+         return -1;
+      }
+
 
       /// <summary>
       /// lesen und speichern der Seiten mit PdfSharp

@@ -15,7 +15,17 @@ namespace PdfArranger {
          set => pictureBox1.Image = value;
       }
 
-      int actualpageidx;
+      public int PageIdx {
+         get;
+         protected set;
+      }
+
+      public string Filename {
+         get;
+         protected set;
+      }
+
+      int lastdpi = -1;
 
 
       public PageViewForm() {
@@ -28,10 +38,20 @@ namespace PdfArranger {
          //ShowPage(PageIdx, Filename, Image);
       }
 
+      /// <summary>
+      /// zeigt ein Bild an
+      /// <para>Alle anderen Parameter dienen nur der Information.</para>
+      /// </summary>
+      /// <param name="pageidx">Seitenindex in der Datei (nicht der Auflistung!)</param>
+      /// <param name="filename">Datei aus der die Seite stammt</param>
+      /// <param name="img"></param>
+      /// <param name="dpi"></param>
       public void ShowPage(int pageidx, string filename, Image img, int dpi) {
          Image = img;
-         actualpageidx = pageidx;
-         Text = "Seite " + (pageidx + 1) + ", " + filename;
+         PageIdx = pageidx;
+         Filename = filename;
+         Text = "Seite " + (PageIdx + 1) + ", " + Filename;
+         lastdpi = dpi;
 
          // Client-Area max.
          //int maxclientheight = SystemInformation.VirtualScreen.Height - (Size.Height - ClientSize.Height);
@@ -88,13 +108,13 @@ namespace PdfArranger {
              MasterForm.IsHandleCreated) {
             Cursor cursor = MasterForm.Cursor;
             Cursor = Cursors.WaitCursor;
-            MasterForm.ShowPageNew(this, actualpageidx + delta, 300);
+            MasterForm.ShowPageNew(this, delta, lastdpi);
             Cursor = cursor;
          }
       }
 
       private void ToolStripMenuItemFirstPage_Click(object sender, EventArgs e) {
-         changePageIdx(-actualpageidx);
+         changePageIdx(int.MinValue);
       }
 
       private void ToolStripMenuItemPageUp_Click(object sender, EventArgs e) {
@@ -114,7 +134,7 @@ namespace PdfArranger {
       }
 
       private void ToolStripMenuItemLastPage_Click(object sender, EventArgs e) {
-         changePageIdx(int.MaxValue - actualpageidx);    // Sonderfall "letzte Seite"
+         changePageIdx(int.MaxValue);    // Sonderfall "letzte Seite"
       }
 
    }

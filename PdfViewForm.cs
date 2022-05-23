@@ -82,18 +82,35 @@ namespace PdfArranger {
       /// für den Aufruf von einem <see cref="PageViewForm"/> aus (ändert die angezeigte Seite)
       /// </summary>
       /// <param name="form"></param>
-      /// <param name="idx"></param>
+      /// <param name="delta"></param>
       /// <param name="dpi"></param>
-      public void ShowPageNew(PageViewForm form, int idx, int dpi) {
-         // Sonderfall "letzte Seite"
-         if (idx == int.MaxValue)
-            idx = listViewPdfPages1.Count - 1;
+      public void ShowPageNew(PageViewForm form, int delta, int dpi) {
+         if (form != null) {
+            int idx;
+            switch (delta) {
+               case int.MinValue:   // Sonderfall "1. Seite"
+                  idx = 0;
+                  break;
 
-         Image img = listViewPdfPages1.GetImage4Page(idx, dpi);
-         if (img != null) {
-            ListViewPdfPages.PageInfo pi = listViewPdfPages1.GetInfo4Page(idx);
-            if (pi != null)
-               showPage(form, pi.PageNo, pi.Filename, img, dpi);
+               case int.MaxValue:   // Sonderfall "letzte Seite"
+                  idx = listViewPdfPages1.Count - 1;
+                  break;
+
+               default:
+                  idx = listViewPdfPages1.GetIdx4Page(form.Filename, form.PageIdx);
+                  if (idx >= 0)
+                     idx += delta;
+                  break;
+            }
+
+            if (0 <= idx && idx < listViewPdfPages1.Count) {
+               Image img = listViewPdfPages1.GetImage4Page(idx, dpi);
+               if (img != null) {
+                  ListViewPdfPages.PageInfo pi = listViewPdfPages1.GetInfo4Page(idx);
+                  if (pi != null)
+                     showPage(form, pi.PageNo, pi.Filename, img, dpi);
+               }
+            }
          }
       }
 
