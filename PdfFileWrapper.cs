@@ -105,7 +105,7 @@ namespace PdfArranger {
             PageNo = -1;
             PageRotationType = rotation;
             Image = image;
-            ImageSize= imagesize;
+            ImageSize = imagesize;
          }
 
          public override string ToString() {
@@ -137,6 +137,39 @@ namespace PdfArranger {
          get => pdfpasswords4id[FileID];
          protected set => pdfpasswords4id[FileID] = value;
       }
+
+      /// <summary>
+      /// Standard-Seitengröße (in mm)
+      /// </summary>
+      public RectangleF PdfDefaultPageSize { get; protected set; }
+      /// <summary>
+      /// Anzahl der Seiten des Dokumentes
+      /// </summary>
+      public int PdfGetNumberOfPages { get; protected set; }
+      /// <summary>
+      /// PDF-Version des Dokumentes
+      /// </summary>
+      public string PdfVersion { get; protected set; }
+      /// <summary>
+      /// Author des Dokumentes
+      /// </summary>
+      public string PdfAuthor { get; protected set; }
+      public string PdfCreator { get; protected set; }
+      public string PdfKeywords { get; protected set; }
+      public string PdfProducer { get; protected set; }
+      /// <summary>
+      /// Thema des Dokumentes
+      /// </summary>
+      public string PdfSubject { get; protected set; }
+      /// <summary>
+      /// Titel des Dokumentes
+      /// </summary>
+      public string PdfTitle { get; protected set; }
+      /// <summary>
+      /// Größe aller Seiten (in mm)
+      /// </summary>
+      public List<RectangleF> PdfPageSizes { get; protected set; }
+
 
       public enum PageRotationType {
          /// <summary>
@@ -184,7 +217,6 @@ namespace PdfArranger {
       /// </summary>
       static int pdffileid = 1;
 
-
       #region static-Daten für Ghostscript
 
       static Ghostscript.NET.Rasterizer.GhostscriptRasterizer ghostscriptRasterizer = null;
@@ -214,6 +246,7 @@ namespace PdfArranger {
       public PdfFileWrapper(string filename, PasswordProvider passwordProvider, string password = null) {
          FileID = RegisterFile(filename, password);
          this.passwordProvider = passwordProvider;
+         PdfPageSizes = new List<RectangleF>();
       }
 
       #region File-ID-Funktionen
@@ -517,8 +550,8 @@ namespace PdfArranger {
                   if (pages[i].IsImagefile) {
                      iText.Kernel.Geom.PageSize pagesize = iText.Kernel.Geom.PageSize.A4; // Dummy
                      if (pages[i].ImageSize != SizeF.Empty)
-                        pagesize = new iText.Kernel.Geom.PageSize(pages[i].ImageSize.Width / 25.4F * 72,    // mm => Units
-                                                                  pages[i].ImageSize.Height / 25.4F * 72);
+                        pagesize = new iText.Kernel.Geom.PageSize(UserUnits4mm(pages[i].ImageSize.Width),
+                                                                  UserUnits4mm(pages[i].ImageSize.Height));
                      pdfIText7AddPage(pages[i].Image,
                                       pages[i].PageRotationType,
                                       pagesize);
@@ -557,14 +590,14 @@ namespace PdfArranger {
          return pdfIText7IsOpen4PageRead;
       }
 
-      //double getUserUnit(PdfPage page) {
-      //   // 1 inch = 25.4 mm = 72 user units
-      //   PdfDictionary pageDict = page.GetPdfObject();
-      //   PdfNumber userUnit = pageDict.GetAsNumber(PdfName.UserUnit);
-      //   return userUnit != null ?
-      //               userUnit.GetValue() :
-      //               72;                        // wenn nicht def. dann default
-      //}
+      int getUserUnit(PdfPage page) {
+         // 1 inch = 25.4 mm = 72 user units
+         PdfDictionary pageDict = page.GetPdfObject();
+         PdfNumber userUnit = pageDict?.GetAsNumber(PdfName.UserUnit);
+         return userUnit != null ?
+                     (int)userUnit.GetValue() :
+                     72;                        // wenn nicht def. dann default
+      }
 
       //byte[] image2ByteArray(Image img) {
       //   using (MemoryStream mStream = new MemoryStream()) {
@@ -572,6 +605,55 @@ namespace PdfArranger {
       //      return mStream.ToArray();
       //   }
       //}
+
+
+      /// <summary>
+      /// ermittelt einige allgemeine Infos zum Dokument und die Seitengrößen
+      /// </summary>
+      /// <param name="orgpageno"></param>
+      /// <returns></returns>
+      public void ReadPdfInfos() {
+         PdfPageSizes = new List<RectangleF>();
+         if (pdfIText7Open4Read(passwordProvider)) {
+            iText.Kernel.Geom.PageSize dps = pdfIText7Document.GetDefaultPageSize();
+            PdfDefaultPageSize = new RectangleF(Mm4UserUnits(dps.GetLeft()),
+                                                Mm4UserUnits(dps.GetTop()),
+                                                Mm4UserUnits(dps.GetWidth()),
+                                                Mm4UserUnits(dps.GetHeight()));
+
+            PdfGetNumberOfPages = pdfIText7Document.GetNumberOfPages();
+            PdfVersion = pdfIText7Document.GetPdfVersion().ToString();
+            PdfDocumentInfo pdi = pdfIText7Document.GetDocumentInfo();
+            PdfAuthor = pdi.GetAuthor();
+            PdfCreator = pdi.GetCreator();
+            PdfKeywords = pdi.GetKeywords();
+            PdfProducer = pdi.GetProducer();
+            PdfSubject = pdi.GetSubject();
+            PdfTitle = pdi.GetTitle();
+
+            for (int i = 1; i <= PdfGetNumberOfPages; i++)
+               PdfPageSizes.Add(getPageSize(pdfIText7Document.GetPage(i)));
+
+            pdfIText7Close();
+         }
+      }
+
+      /// <summary>
+      /// liefert die Seitengröße (in mm)
+      /// </summary>
+      /// <param name="page"></param>
+      /// <returns></returns>
+      RectangleF getPageSize(PdfPage page) {
+         //iText.Kernel.Geom.Rectangle cb = page.GetCropBox();
+         //iText.Kernel.Geom.Rectangle mb = page.GetMediaBox();
+         iText.Kernel.Geom.Rectangle size = page.GetPageSize();
+         int userUnit = getUserUnit(page);
+         return new RectangleF(Mm4UserUnits(size.GetLeft(), userUnit),
+                               Mm4UserUnits(size.GetTop(), userUnit),
+                               Mm4UserUnits(size.GetWidth(), userUnit),
+                               Mm4UserUnits(size.GetHeight(), userUnit));
+      }
+
 
       /// <summary>
       /// PDF aus einer PDF-Datei übernehmen
@@ -591,6 +673,7 @@ namespace PdfArranger {
 
                pagelist = src.pdfIText7Document.CopyPagesTo(orgpageno, orgpageno, pdfIText7Document); // Seitenbereich von ... bis ... wird kopiert
                page = pagelist[0];
+               PdfPageSizes.Add(getPageSize(page));
 
             } catch (BadPasswordException ex) {
                trygraphic = true;
@@ -620,6 +703,7 @@ namespace PdfArranger {
                document2.Add(image);
 
                page = document2.GetPdfDocument().GetPage(1);
+               PdfPageSizes.Add(getPageSize(page));
             }
 
             if (rotation != PageRotationType.None) {
@@ -754,6 +838,7 @@ static iText.Kernel.Geom.PageSize X = new iText.Kernel.Geom.PageSize(w, h)
                rot += 360;
             page.SetRotation(rot);
          }
+         PdfPageSizes.Add(getPageSize(page));
 
          return page;
       }
@@ -856,6 +941,27 @@ static iText.Kernel.Geom.PageSize X = new iText.Kernel.Geom.PageSize(w, h)
       }
 
 #endif
+
+      /// <summary>
+      /// mm in Units umrechnen (1 Zoll = 72 user units)
+      /// </summary>
+      /// <param name="mm"></param>
+      /// <returns></returns>
+      public static float UserUnits4mm(float mm) {
+         return UserUnits4mm(mm, 72);
+      }
+
+      public static float UserUnits4mm(float mm, int userunits) {
+         return mm / 25.4F * userunits;
+      }
+
+      public static float Mm4UserUnits(float units) {
+         return Mm4UserUnits(units, 72);
+      }
+
+      public static float Mm4UserUnits(float units, int userunits) {
+         return 25.4F * units / userunits;
+      }
 
       public static int Rotation2Degree(PageRotationType rot) {
          switch (rot) {

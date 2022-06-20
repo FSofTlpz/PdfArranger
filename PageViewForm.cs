@@ -44,13 +44,18 @@ namespace PdfArranger {
       /// </summary>
       /// <param name="pageidx">Seitenindex in der Datei (nicht der Auflistung!)</param>
       /// <param name="filename">Datei aus der die Seite stammt</param>
+      /// <param name="orgpagesize">org. Seitengröße (in mm; nur als Info)</param>
       /// <param name="img"></param>
       /// <param name="dpi"></param>
-      public void ShowPage(int pageidx, string filename, Image img, int dpi) {
+      public void ShowPage(int pageidx, string filename, SizeF orgpagesize, Image img, int dpi) {
          Image = img;
          PageIdx = pageidx;
          Filename = filename;
-         Text = "Seite " + (PageIdx + 1) + ", " + Filename;
+         Text = string.Format("Seite {0} ({1:N1}mm x {2:N1}mm)), {3}",
+                              (PageIdx + 1),
+                              orgpagesize.Width, 
+                              orgpagesize.Height,
+                              Filename);
          lastdpi = dpi;
 
          // Client-Area max.

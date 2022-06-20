@@ -11,6 +11,10 @@ namespace PdfArranger {
 
       public event EventHandler<ListViewPdfPages.PageInfoEventArgs> OnItemDoubleClick;
 
+      public event EventHandler OnCountChanged;
+
+      public event EventHandler OnSelectedCountChanged;
+
 
       public string Filename {
          get;
@@ -39,12 +43,17 @@ namespace PdfArranger {
 
       private void PdfViewForm_Shown(object sender, EventArgs e) {
          listViewPdfPages1.OnItemCountChanged += ListViewPdfPages1_OnItemCountChanged;
+         listViewPdfPages1.OnItemSelectionChanged += ListViewPdfPages1_OnItemSelectionChanged;
          listViewPdfPages1.OnItemDoubleClick += ListViewPdfPages1_OnItemDoubleClick;
          listViewPdfPages1.OnNewItemsDrop += ListViewPdfPages1_OnNewItemsDrop;
 
          if (!string.IsNullOrEmpty(Filename)) {
             listViewPdfPages1.AppendPdfFile(Filename);
          }
+      }
+
+      private void ListViewPdfPages1_OnItemSelectionChanged(object sender, EventArgs e) {
+         OnSelectedCountChanged?.Invoke(this, EventArgs.Empty);
       }
 
       private void ListViewPdfPages1_OnNewItemsDrop(object sender, EventArgs e) {
@@ -57,6 +66,16 @@ namespace PdfArranger {
 
       private void ListViewPdfPages1_OnItemCountChanged(object sender, EventArgs e) {
          toolStripStatusLabel_Pages.Text = listViewPdfPages1.Count + " Seite" + (listViewPdfPages1.Count != 1 ? "n" : "");
+         OnCountChanged?.Invoke(this, EventArgs.Empty);
+      }
+
+      /// <summary>
+      /// macht ein bestimmtes Item sichtbar
+      /// </summary>
+      /// <param name="idx"></param>
+      public void EnsureVisible(int idx) {
+         if (0 <= idx && idx < listViewPdfPages1.Count)
+            listViewPdfPages1.EnsureVisible(idx);
       }
 
       /// <summary>
@@ -73,7 +92,10 @@ namespace PdfArranger {
                   //WindowState = FormWindowState.Maximized,
                };
                form.Show(this);
-               showPage(form, pi[i].PageNo, pi[i].Filename, img[i], dpi);
+
+               //pi[i].
+
+               showPage(form, pi[i].PageNo, pi[i].Filename, pi[i].PageSize, img[i], dpi);
             }
          }
       }
@@ -108,7 +130,7 @@ namespace PdfArranger {
                if (img != null) {
                   ListViewPdfPages.PageInfo pi = listViewPdfPages1.GetInfo4Page(idx);
                   if (pi != null)
-                     showPage(form, pi.PageNo, pi.Filename, img, dpi);
+                     showPage(form, pi.PageNo, pi.Filename, pi.PageSize, img, dpi);
                }
             }
          }
@@ -129,13 +151,13 @@ namespace PdfArranger {
                   //WindowState = FormWindowState.Maximized,
                };
                form.Show(this);
-               showPage(form, pi.PageNo, pi.Filename, img, dpi);
+               showPage(form, pi.PageNo, pi.Filename, pi.PageSize, img, dpi);
             }
          }
       }
 
-      void showPage(PageViewForm form, int pageidx, string filename, Image img, int dpi) {
-         form.ShowPage(pageidx, filename, img, dpi);
+      void showPage(PageViewForm form, int pageidx, string filename, SizeF orgpagesize, Image img, int dpi) {
+         form.ShowPage(pageidx, filename, orgpagesize, img, dpi);
       }
 
       /// <summary>

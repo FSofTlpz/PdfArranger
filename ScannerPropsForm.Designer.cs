@@ -44,11 +44,20 @@
          this.label3 = new System.Windows.Forms.Label();
          this.label4 = new System.Windows.Forms.Label();
          this.panel1 = new System.Windows.Forms.Panel();
+         this.numericUpDown_DeltaY = new System.Windows.Forms.NumericUpDown();
+         this.label8 = new System.Windows.Forms.Label();
+         this.numericUpDown_DeltaX = new System.Windows.Forms.NumericUpDown();
+         this.label7 = new System.Windows.Forms.Label();
+         this.label6 = new System.Windows.Forms.Label();
+         this.button_end = new System.Windows.Forms.Button();
          this.groupBox1.SuspendLayout();
          this.groupBox2.SuspendLayout();
          ((System.ComponentModel.ISupportInitialize)(this.numericUpDown_JPGQuali)).BeginInit();
          ((System.ComponentModel.ISupportInitialize)(this.numericUpDown_Brightness)).BeginInit();
          ((System.ComponentModel.ISupportInitialize)(this.numericUpDown_Contrast)).BeginInit();
+         this.panel1.SuspendLayout();
+         ((System.ComponentModel.ISupportInitialize)(this.numericUpDown_DeltaY)).BeginInit();
+         ((System.ComponentModel.ISupportInitialize)(this.numericUpDown_DeltaX)).BeginInit();
          this.SuspendLayout();
          // 
          // button_Scanner
@@ -280,17 +289,101 @@
          // panel1
          // 
          this.panel1.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+         this.panel1.Controls.Add(this.numericUpDown_DeltaY);
+         this.panel1.Controls.Add(this.label8);
+         this.panel1.Controls.Add(this.numericUpDown_DeltaX);
+         this.panel1.Controls.Add(this.label7);
+         this.panel1.Controls.Add(this.label6);
+         this.panel1.Controls.Add(this.button_end);
          this.panel1.Dock = System.Windows.Forms.DockStyle.Fill;
          this.panel1.Location = new System.Drawing.Point(0, 0);
          this.panel1.Name = "panel1";
-         this.panel1.Size = new System.Drawing.Size(378, 280);
+         this.panel1.Size = new System.Drawing.Size(378, 365);
          this.panel1.TabIndex = 11;
+         // 
+         // numericUpDown_DeltaY
+         // 
+         this.numericUpDown_DeltaY.DecimalPlaces = 1;
+         this.numericUpDown_DeltaY.Increment = new decimal(new int[] {
+            1,
+            0,
+            0,
+            65536});
+         this.numericUpDown_DeltaY.Location = new System.Drawing.Point(232, 275);
+         this.numericUpDown_DeltaY.Maximum = new decimal(new int[] {
+            50,
+            0,
+            0,
+            0});
+         this.numericUpDown_DeltaY.Name = "numericUpDown_DeltaY";
+         this.numericUpDown_DeltaY.Size = new System.Drawing.Size(54, 20);
+         this.numericUpDown_DeltaY.TabIndex = 14;
+         this.numericUpDown_DeltaY.TextAlign = System.Windows.Forms.HorizontalAlignment.Right;
+         // 
+         // label8
+         // 
+         this.label8.AutoSize = true;
+         this.label8.Location = new System.Drawing.Point(212, 277);
+         this.label8.Name = "label8";
+         this.label8.Size = new System.Drawing.Size(14, 13);
+         this.label8.TabIndex = 15;
+         this.label8.Text = "Y";
+         // 
+         // numericUpDown_DeltaX
+         // 
+         this.numericUpDown_DeltaX.DecimalPlaces = 1;
+         this.numericUpDown_DeltaX.Increment = new decimal(new int[] {
+            1,
+            0,
+            0,
+            65536});
+         this.numericUpDown_DeltaX.Location = new System.Drawing.Point(118, 275);
+         this.numericUpDown_DeltaX.Maximum = new decimal(new int[] {
+            50,
+            0,
+            0,
+            0});
+         this.numericUpDown_DeltaX.Name = "numericUpDown_DeltaX";
+         this.numericUpDown_DeltaX.Size = new System.Drawing.Size(54, 20);
+         this.numericUpDown_DeltaX.TabIndex = 12;
+         this.numericUpDown_DeltaX.TextAlign = System.Windows.Forms.HorizontalAlignment.Right;
+         // 
+         // label7
+         // 
+         this.label7.AutoSize = true;
+         this.label7.Location = new System.Drawing.Point(98, 277);
+         this.label7.Name = "label7";
+         this.label7.Size = new System.Drawing.Size(14, 13);
+         this.label7.TabIndex = 13;
+         this.label7.Text = "X";
+         // 
+         // label6
+         // 
+         this.label6.AutoSize = true;
+         this.label6.Location = new System.Drawing.Point(19, 277);
+         this.label6.Name = "label6";
+         this.label6.Size = new System.Drawing.Size(57, 13);
+         this.label6.TabIndex = 12;
+         this.label6.Text = "Delta (mm)";
+         // 
+         // button_end
+         // 
+         this.button_end.DialogResult = System.Windows.Forms.DialogResult.OK;
+         this.button_end.Location = new System.Drawing.Point(151, 318);
+         this.button_end.Name = "button_end";
+         this.button_end.Size = new System.Drawing.Size(75, 23);
+         this.button_end.TabIndex = 0;
+         this.button_end.Text = "schließen";
+         this.button_end.UseVisualStyleBackColor = true;
+         this.button_end.Click += new System.EventHandler(this.button_end_Click);
          // 
          // ScannerPropsForm
          // 
+         this.AcceptButton = this.button_end;
          this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
          this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-         this.ClientSize = new System.Drawing.Size(378, 280);
+         this.ClientSize = new System.Drawing.Size(378, 365);
+         this.ControlBox = false;
          this.Controls.Add(this.label4);
          this.Controls.Add(this.label3);
          this.Controls.Add(this.numericUpDown_Contrast);
@@ -309,6 +402,7 @@
          this.Text = "Scannereigenschaften";
          this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.ScannerPropsForm_FormClosing);
          this.Load += new System.EventHandler(this.ScannerPropsForm_Load);
+         this.Shown += new System.EventHandler(this.ScannerPropsForm_Shown);
          this.groupBox1.ResumeLayout(false);
          this.groupBox1.PerformLayout();
          this.groupBox2.ResumeLayout(false);
@@ -316,6 +410,10 @@
          ((System.ComponentModel.ISupportInitialize)(this.numericUpDown_JPGQuali)).EndInit();
          ((System.ComponentModel.ISupportInitialize)(this.numericUpDown_Brightness)).EndInit();
          ((System.ComponentModel.ISupportInitialize)(this.numericUpDown_Contrast)).EndInit();
+         this.panel1.ResumeLayout(false);
+         this.panel1.PerformLayout();
+         ((System.ComponentModel.ISupportInitialize)(this.numericUpDown_DeltaY)).EndInit();
+         ((System.ComponentModel.ISupportInitialize)(this.numericUpDown_DeltaX)).EndInit();
          this.ResumeLayout(false);
          this.PerformLayout();
 
@@ -344,5 +442,11 @@
       private System.Windows.Forms.NumericUpDown numericUpDown_JPGQuali;
       private System.Windows.Forms.Label label5;
       private System.Windows.Forms.Panel panel1;
+      private System.Windows.Forms.Button button_end;
+      private System.Windows.Forms.NumericUpDown numericUpDown_DeltaY;
+      private System.Windows.Forms.Label label8;
+      private System.Windows.Forms.NumericUpDown numericUpDown_DeltaX;
+      private System.Windows.Forms.Label label7;
+      private System.Windows.Forms.Label label6;
    }
 }

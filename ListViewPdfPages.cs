@@ -25,6 +25,15 @@ namespace PdfArranger {
       /// </summary>
       Dictionary<int, ImageList> imagelists = new Dictionary<int, ImageList>();
 
+      /// <summary>
+      /// Anzahl der markierten Items
+      /// </summary>
+      public int SelectedCount {
+         get {
+            return listView1.SelectedIndices.Count;
+         }
+      }
+
 
       //List<ListViewItem> listViewItemCache;
 
@@ -82,6 +91,11 @@ namespace PdfArranger {
          /// Bildgröße in mm (oder <see cref="SizeF.Empty"/>)
          /// </summary>
          public SizeF ImageSize = SizeF.Empty;
+
+         /// <summary>
+         /// Seitengröße in mm (oder <see cref="RectangleF.Empty"/>)
+         /// </summary>
+         public RectangleF PageSize = RectangleF.Empty;
 
          static int imgpseudopage = 1;
 
@@ -190,9 +204,15 @@ namespace PdfArranger {
             protected set;
          }
 
-         public PageInfo(string filename, int page) {
+         public SizeF PageSize {
+            get;
+            protected set;
+         }
+
+         public PageInfo(string filename, int page, SizeF pageSize) {
             Filename = filename;
             PageNo = page;
+            PageSize = pageSize;
          }
 
          public override string ToString() {
@@ -268,7 +288,6 @@ namespace PdfArranger {
          listView1.ItemDrag += ListView1_ItemDrag;
          listView1.AllowDrop = true;
 
-         listView1.SelectedIndexChanged += ListView1_SelectedIndexChanged;
          listView1.MouseDoubleClick += ListView1_MouseDoubleClick;
          listView1.KeyDown += ListView1_KeyDown;
 
@@ -301,14 +320,18 @@ namespace PdfArranger {
          Cursor cur = Cursor;
          int pagecount = 0;
          try {
+            pdf.ReadPdfInfos();
             pagecount = pdf.PageCount();
 
             if (dataCache == null)
                dataCache = new List<PageData>();
 
             PageData[] pd = new PageData[pagecount];
-            for (int i = 0; i < pd.Length; i++)
-               pd[i] = new PageData(i, pdffile, password, PdfFileWrapper.PageRotationType.None);
+            for (int i = 0; i < pd.Length; i++) {
+               pd[i] = new PageData(i, pdffile, password, PdfFileWrapper.PageRotationType.None) {
+                  PageSize = pdf.PdfPageSizes[i],
+               };
+            }
 
             Cursor = Cursors.WaitCursor;
             if (0 <= listindex && listindex < dataCache.Count)
@@ -358,7 +381,9 @@ namespace PdfArranger {
 
             pd[0] = new PageData(image.Clone() as Image,
                                  imagesize,
-                                 PdfFileWrapper.PageRotationType.None);
+                                 PdfFileWrapper.PageRotationType.None) {
+               PageSize = new RectangleF(0, 0, imagesize.Width, imagesize.Height),
+            };
 
             Cursor = Cursors.WaitCursor;
             if (0 <= listindex && listindex < dataCache.Count)
@@ -397,7 +422,7 @@ namespace PdfArranger {
          }
 
          if (rotation != PdfFileWrapper.PageRotationType.None) {
-            for (int i = 0; i < listView1.SelectedIndices.Count; i++) {
+            for (int i = 0; i < SelectedCount; i++) {
                dataCache[listView1.SelectedIndices[i]].AddRotation(rotation);
             }
             listView1.Refresh();
@@ -410,16 +435,16 @@ namespace PdfArranger {
       /// <param name="dpi"></param>
       /// <returns></returns>
       public Image GetImage4FirstSelectedItem(int dpi) {
-         if (listView1.SelectedIndices.Count > 0)
+         if (SelectedCount > 0)
             return GetImage4Page(listView1.SelectedIndices[0], dpi);
          return null;
       }
 
       public Image[] GetImage4SelectedItems(int dpi) {
          Image[] images = null;
-         if (listView1.SelectedIndices.Count > 0) {
-            images = new Image[listView1.SelectedIndices.Count];
-            for (int i = 0; i < listView1.SelectedIndices.Count; i++)
+         if (SelectedCount > 0) {
+            images = new Image[SelectedCount];
+            for (int i = 0; i < SelectedCount; i++)
                images[i] = GetImage4Page(listView1.SelectedIndices[i], dpi);
          }
          return images;
@@ -454,9 +479,9 @@ namespace PdfArranger {
       /// </summary>
       /// <returns></returns>
       public PageInfo[] GetInfo4SelectedItems() {
-         if (listView1.SelectedIndices.Count > 0) {
-            PageInfo[] pi = new PageInfo[listView1.SelectedIndices.Count];
-            for (int i = 0; i < listView1.SelectedIndices.Count; i++)
+         if (SelectedCount > 0) {
+            PageInfo[] pi = new PageInfo[SelectedCount];
+            for (int i = 0; i < SelectedCount; i++)
                pi[i] = GetInfo4Page(listView1.SelectedIndices[i]);
             return pi;
          }
@@ -470,7 +495,9 @@ namespace PdfArranger {
       /// <returns></returns>
       public PageInfo GetInfo4Page(int pageidx) {
          return 0 <= pageidx && pageidx < dataCache.Count ?
-                        new PageInfo(dataCache[pageidx].Filename, dataCache[pageidx].PageNo) :
+                        new PageInfo(dataCache[pageidx].Filename,
+                                     dataCache[pageidx].PageNo,
+                                     new SizeF(dataCache[pageidx].PageSize.Width, dataCache[pageidx].PageSize.Height)) :
                         null;
       }
 
@@ -493,8 +520,8 @@ namespace PdfArranger {
       /// akt. markierte Seiten entfernen
       /// </summary>
       public void RemoveSelectedItems() {
-         if (listView1.SelectedIndices.Count > 0) {
-            int[] idx = new int[listView1.SelectedIndices.Count];
+         if (SelectedCount > 0) {
+            int[] idx = new int[SelectedCount];
             listView1.SelectedIndices.CopyTo(idx, 0);
             Array.Sort(idx);
 
@@ -514,13 +541,21 @@ namespace PdfArranger {
       /// <param name="pageidx"></param>
       /// <returns>negativ wenn nicht gefunden</returns>
       public int GetIdx4Page(string filename, int pageidx) {
-         for (int i = 0; i < dataCache.Count; i++) 
+         for (int i = 0; i < dataCache.Count; i++)
             if (dataCache[i].PageNo == pageidx &&
-                dataCache[i].Filename == filename) 
+                dataCache[i].Filename == filename)
                return i;
          return -1;
       }
 
+      /// <summary>
+      /// macht ein bestimmtes Item sichtbar
+      /// </summary>
+      /// <param name="idx"></param>
+      public void EnsureVisible(int idx) {
+         if (0 <= idx && idx < listView1.Items.Count)
+            listView1.Items[idx].EnsureVisible();
+      }
 
       /// <summary>
       /// lesen und speichern der Seiten mit PdfSharp
@@ -1010,21 +1045,31 @@ namespace PdfArranger {
       }
 
       private void ListView1_MouseWheel(object sender, MouseEventArgs e) {
-         if ((ModifierKeys & Keys.Control) != Keys.None)
+         if ((ModifierKeys & Keys.Control) == Keys.Control)
             if (e.Delta != 0)
                changeImageSize(e.Delta > 0 ? 1 : -1);
       }
 
       private void ListView1_SelectedIndexChanged(object sender, EventArgs e) {
+         //Debug.WriteLine(">>> SelectedIndexChanged: " + (sender as ListView).SelectedIndices.Count + ", " + x());
+      }
+
+      private void listView1_ItemSelectionChanged(object sender, ListViewItemSelectionChangedEventArgs e) {
+         //Debug.WriteLine(">>> ItemSelectionChanged: " + (sender as ListView).SelectedIndices.Count);
+         OnItemSelectionChanged?.Invoke(this, new EventArgs());
+      }
+
+      private void listView1_VirtualItemsSelectionRangeChanged(object sender, ListViewVirtualItemsSelectionRangeChangedEventArgs e) {
+         //Debug.WriteLine(">>> VirtualItemsSelectionRangeChanged: " + (sender as ListView).SelectedIndices.Count);
          OnItemSelectionChanged?.Invoke(this, new EventArgs());
       }
 
       private void ListView1_KeyDown(object sender, KeyEventArgs e) {
          if (e.KeyCode == Keys.Enter) {
-            if (listView1.SelectedIndices.Count > 0) {
+            if (SelectedCount > 0) {
                e.Handled = true;
                PageData pd = dataCache[listView1.SelectedIndices[0]];
-               OnItemDoubleClick?.Invoke(this, new PageInfoEventArgs(new PageInfo(pd.Filename, pd.PageNo)));
+               OnItemDoubleClick?.Invoke(this, new PageInfoEventArgs(new PageInfo(pd.Filename, pd.PageNo, new SizeF(pd.PageSize.Width, pd.PageSize.Height))));
             }
          }
       }
@@ -1033,7 +1078,7 @@ namespace PdfArranger {
          int idx = GetItemIdx4Point(e.Location);
          if (idx >= 0) {
             PageData pd = dataCache[idx];
-            OnItemDoubleClick?.Invoke(this, new PageInfoEventArgs(new PageInfo(pd.Filename, pd.PageNo)));
+            OnItemDoubleClick?.Invoke(this, new PageInfoEventArgs(new PageInfo(pd.Filename, pd.PageNo, new SizeF(pd.PageSize.Width, pd.PageSize.Height))));
          }
       }
 

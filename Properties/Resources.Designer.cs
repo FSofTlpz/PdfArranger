@@ -63,16 +63,6 @@ namespace PdfArranger.Properties {
         /// <summary>
         ///   Sucht eine lokalisierte Ressource vom Typ System.Drawing.Bitmap.
         /// </summary>
-        internal static System.Drawing.Bitmap _new {
-            get {
-                object obj = ResourceManager.GetObject("_new", resourceCulture);
-                return ((System.Drawing.Bitmap)(obj));
-            }
-        }
-        
-        /// <summary>
-        ///   Sucht eine lokalisierte Ressource vom Typ System.Drawing.Bitmap.
-        /// </summary>
         internal static System.Drawing.Bitmap arrow_rotate_anticlockwise {
             get {
                 object obj = ResourceManager.GetObject("arrow_rotate_anticlockwise", resourceCulture);
@@ -86,6 +76,16 @@ namespace PdfArranger.Properties {
         internal static System.Drawing.Bitmap arrow_rotate_clockwise {
             get {
                 object obj = ResourceManager.GetObject("arrow_rotate_clockwise", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Sucht eine lokalisierte Ressource vom Typ System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap newpage {
+            get {
+                object obj = ResourceManager.GetObject("newpage", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }

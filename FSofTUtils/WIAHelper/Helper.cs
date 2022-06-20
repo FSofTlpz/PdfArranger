@@ -650,14 +650,18 @@ namespace FSofTUtils.WIAHelper {
       /// <para>Das Bitmap hat das Format <see cref="ImageFormat.MemoryBmp"/>!</para>
       /// </summary>
       /// <param name="image"></param>
+      /// <param name="dpix">Auflösung horizontal</param>
+      /// <param name="dpiy">Auflösung vertikal</param>
       /// <returns></returns>
-      public static Bitmap ToBitmap(ImageFile image) {
+      public static Bitmap ToBitmap(ImageFile image, float dpix = 0, float dpiy = 0) {
          Bitmap result;
 
          byte[] data = (byte[])image.FileData.get_BinaryData();
          using (MemoryStream stream = new MemoryStream(data)) {
             using (Image scannedImage = Image.FromStream(stream)) {
                result = new Bitmap(image.Width, image.Height, PixelFormat.Format32bppArgb);
+               if (dpix > 0 && dpiy > 0)
+                  result.SetResolution(dpix, dpiy);
                using (Graphics g = Graphics.FromImage(result)) {
                   g.Clear(Color.Transparent);
                   g.PageUnit = GraphicsUnit.Pixel;

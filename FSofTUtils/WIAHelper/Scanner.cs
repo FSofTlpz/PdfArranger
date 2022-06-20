@@ -6,9 +6,37 @@ using System.Drawing;
 namespace FSofTUtils.WIAHelper {
    public class Scanner {
 
+      //FSofTUtils.WIAHelper.Scanner.ImageType
+
+      /* Das Koordinatensystem des Scanbereiches hat links oben für die Vorlage den Koordinatenursprung. Das entspricht der Ecke rechts oben auf der Glasplatte.
+       * 
+       * 
+       * Scanner-Probleme
+       * 
+       * Flachbettscanner HP LJ M176
+       * 
+       *    Die scheinbar verwendbare Glasfläche (218mm x 303mm) ist etwas größer als die vom Scanner gelieferte max. Größe des Scannbereiches (216mm x 297mm).
+       *    Der reale Scannbereich (213mm x 293mm) ist sogar noch etwas kleiner.
+       *    Diese Daten liefert der Scanner leider nicht.
+       *    
+       *    Für einen Scanbereich 216mm x 297mm bei 200 dpi wird ein Bild mit 1700x2338 Pixeln geliefert -> 215,9mm x 296,926mm
+       *    Es wird aber nur der Bereich 213mm x 293mm gescannt. Zusätzlich enthält das Bild rechts und unten einen schmalen weißen Rand, 
+       *    so dass (nur) formal die richtige Größe erreicht wird.
+       *    
+       *    Die "Maske" auf der Glasscheibe müßte oben und links etwa 2mm und rechts und unten etwa 3mm zusätzlich von der Glasscheibe verdecken um einen
+       *    sauberen "Anschlag" für die Scannvorlage zu haben.
+       * 
+       * A4: 210mm x 297mm
+       *    Da der reale Scannbereich nur 293mm hoch ist, kann der Scanner streng genommen ein A4-Blatt nicht komplett scannen!
+       *    Legt man ein A4-Blatt an die Maske oben bündig an, fehlen außerdem die oberen etwa 2mm des Blattes.
+       */
+
+
+
       /// <summary>
       /// Bildtyp
       /// </summary>
+      [Serializable]
       public enum ImageType {
          Nothing,
          Color,
@@ -183,7 +211,7 @@ namespace FSofTUtils.WIAHelper {
                continue;
             idlist.Add(deviceManager.DeviceInfos[i].DeviceID);
             WIA.Property p = deviceManager.DeviceInfos[i].Properties["Name"];
-            object value = p ?? null;
+            object value = p?.get_Value();
             namelist.Add(value?.ToString() ?? "?");
          }
          return idlist;
@@ -303,6 +331,8 @@ namespace FSofTUtils.WIAHelper {
       /// setzt die Scanner-Eigenschaften
       /// </summary>
       /// <param name="resolution">Auflösung</param>
+      /// <param name="left">linker Rand</param>
+      /// <param name="top">oberer Rand</param>
       /// <param name="paperformat">Papierformat</param>
       /// <param name="portrait">Hoch- oder Querformat</param>
       /// <param name="imgtype">i.A. Farbe, Graustufen oder Text</param>
@@ -310,13 +340,13 @@ namespace FSofTUtils.WIAHelper {
       /// <param name="brightness">Helligkeit -1 .. 1</param>
       /// <param name="contrast">Kontrast -1 .. 1</param>
       public void SetProperties(int resolution,
+                                double left, double top,
                                 PaperSize paperformat,
                                 bool portrait,
                                 ImageType imgtype = ImageType.Color,
                                 ImageTypeExt imgtypeext = ImageTypeExt.Nothing,
                                 double brightness = 0,
                                 double contrast = 0) {
-         int left = 0, top = 0;
          GetPaperSize(paperformat, out double widthmm, out double heightmm);
          if (!portrait) {
             double tmp = widthmm;
@@ -467,13 +497,15 @@ namespace FSofTUtils.WIAHelper {
       /// das Format <see cref="ImageFormat.MemoryBmp"/>.</para>
       /// </summary>
       /// <param name="withcanceldlg"></param>
+      /// <param name="dpix">Auflösung horizontal</param>
+      /// <param name="dpiy">Auflösung vertikal</param>
       /// <returns></returns>
-      public Bitmap GetImage(bool withcanceldlg = true) {
+      public Bitmap GetImage(bool withcanceldlg = true, float dpix = 0, float dpiy = 0) {
          WIA.CommonDialog dialog = withcanceldlg ? new WIA.CommonDialog() : null;
          WIA.ImageFile img = dialog != null ?
                                  dialog.ShowTransfer(scannerItem) as WIA.ImageFile :
                                  scannerItem.Transfer() as WIA.ImageFile;
-         return img != null ? WIAHelper.Helper.ToBitmap(img) : null;
+         return img != null ? WIAHelper.Helper.ToBitmap(img, dpix, dpiy) : null;
       }
 
       public string Name() {
