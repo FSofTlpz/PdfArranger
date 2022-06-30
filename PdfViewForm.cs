@@ -52,6 +52,10 @@ namespace PdfArranger {
          }
       }
 
+      private void PdfViewForm_FormClosing(object sender, FormClosingEventArgs e) {
+         PdfPages.RemoveAllItems();
+      }
+
       private void ListViewPdfPages1_OnItemSelectionChanged(object sender, EventArgs e) {
          OnSelectedCountChanged?.Invoke(this, EventArgs.Empty);
       }

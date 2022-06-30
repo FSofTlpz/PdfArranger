@@ -322,6 +322,7 @@ namespace PdfArranger {
          try {
             pdf.ReadPdfInfos();
             pagecount = pdf.PageCount();
+            pdf.UsedPagesAdd(pagecount);
 
             if (dataCache == null)
                dataCache = new List<PageData>();
@@ -526,12 +527,23 @@ namespace PdfArranger {
             Array.Sort(idx);
 
             for (int i = idx.Length - 1; i >= 0; i--) {
+               PdfFileWrapper.UsedPagesDecrement(dataCache[idx[i]].FileKey);
                dataCache.RemoveAt(idx[i]);
                listView1.VirtualListSize--;
             }
             listView1.SelectedIndices.Clear();
             OnItemCountChanged?.Invoke(this, new EventArgs());
          }
+      }
+
+      /// <summary>
+      /// alle Seiten entfernen
+      /// </summary>
+      public void RemoveAllItems() {
+         foreach (PageData item in dataCache) 
+            PdfFileWrapper.UsedPagesDecrement(item.FileKey);
+         listView1.Clear();
+         OnItemCountChanged?.Invoke(this, new EventArgs());
       }
 
       /// <summary>

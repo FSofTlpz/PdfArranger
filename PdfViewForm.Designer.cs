@@ -87,14 +87,14 @@ namespace PdfArranger {
          this.contextMenuStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.ToolStripMenuItemShowPage});
          this.contextMenuStrip1.Name = "contextMenuStrip1";
-         this.contextMenuStrip1.Size = new System.Drawing.Size(181, 48);
+         this.contextMenuStrip1.Size = new System.Drawing.Size(147, 26);
          this.contextMenuStrip1.Opening += new System.ComponentModel.CancelEventHandler(this.contextMenuStrip1_Opening);
          // 
          // ToolStripMenuItemShowPage
          // 
          this.ToolStripMenuItemShowPage.Image = global::PdfArranger.Properties.Resources.zoom;
          this.ToolStripMenuItemShowPage.Name = "ToolStripMenuItemShowPage";
-         this.ToolStripMenuItemShowPage.Size = new System.Drawing.Size(180, 22);
+         this.ToolStripMenuItemShowPage.Size = new System.Drawing.Size(146, 22);
          this.ToolStripMenuItemShowPage.Text = "Seitenanzeige";
          this.ToolStripMenuItemShowPage.Click += new System.EventHandler(this.ToolStripMenuItemShowPage_Click);
          // 
@@ -108,6 +108,7 @@ namespace PdfArranger {
          this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
          this.Name = "PdfViewForm";
          this.Text = "PdfViewForm";
+         this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.PdfViewForm_FormClosing);
          this.Load += new System.EventHandler(this.PdfViewForm_Load);
          this.Shown += new System.EventHandler(this.PdfViewForm_Shown);
          this.toolStripContainer1.BottomToolStripPanel.ResumeLayout(false);

@@ -213,6 +213,12 @@ namespace PdfArranger {
       static Dictionary<int, string> pdfpasswords4id = new Dictionary<int, string>();
 
       /// <summary>
+      /// Anzahl der akt. verwendeten Seiten zum Datei-Key
+      /// </summary>
+      static Dictionary<int, int> usedpages4id = new Dictionary<int, int>();
+
+
+      /// <summary>
       /// eindeutige Datei-ID
       /// </summary>
       static int pdffileid = 1;
@@ -257,9 +263,21 @@ namespace PdfArranger {
             id = ++pdffileid;
             pdffiles4id.Add(id, filename);
             pdfpasswords4id.Add(id, password);
+            usedpages4id.Add(id, 0);
          } else
             pdfpasswords4id[id] = password;     // ev. neu
          return id;
+      }
+
+      /// <summary>
+      /// akt. nur den Ghostscript-Rasterizer schließen, falls für diese Datei geöffnet
+      /// </summary>
+      /// <param name="id"></param>
+      static void UnregisterFile(int id) {
+         //pdffiles4id.Remove(id);
+         //pdfpasswords4id.Remove(id);
+         //usedpages4id.Remove(id);
+         ghostscriptRasterizerClose4(PdfFile(id));
       }
 
       /// <summary>
@@ -280,6 +298,48 @@ namespace PdfArranger {
 
       public static string PdfPassword(int id) {
          return pdfpasswords4id[id];
+      }
+
+      public static int UsedPages(int id) {
+         return usedpages4id[id];
+      }
+
+      public static int UsedPagesIncrement(int id) {
+         return ++usedpages4id[id];
+      }
+
+      public static int UsedPagesDecrement(int id) {
+         --usedpages4id[id];
+         if (usedpages4id[id] == 0) {
+            UnregisterFile(id);
+            return 0;
+         }
+         return usedpages4id[id];
+      }
+
+      public static int UsedPagesAdd(int id, int delta) {
+         usedpages4id[id] += delta;
+         if (usedpages4id[id] == 0) {
+            UnregisterFile(id);
+            return 0;
+         }
+         return usedpages4id[id];
+      }
+
+      public int UsedPages() {
+         return UsedPages(FileID);
+      }
+
+      public int UsedPagesIncrement() {
+         return UsedPagesIncrement(FileID);
+      }
+
+      public int UsedPagesDecrement() {
+         return UsedPagesDecrement(FileID);
+      }
+
+      public int UsedPagesAdd(int delta) {
+         return UsedPagesAdd(FileID, delta);
       }
 
       #endregion
@@ -353,10 +413,9 @@ namespace PdfArranger {
 
       #endregion
 
-
       /// <summary>
       /// liefert die Seitenanzahl der Datei
-      /// <para>Es wird von Ghostscript verwendet.</para>
+      /// <para>Es wird Ghostscript verwendet.</para>
       /// </summary>
       /// <returns></returns>
       public int PageCount() {
@@ -368,6 +427,7 @@ namespace PdfArranger {
 
       /// <summary>
       /// liefert eine Liste von Bildern für den Seitenbereich
+      /// <para>Es wird Ghostscript verwendet.</para>
       /// </summary>
       /// <param name="pagefrom"></param>
       /// <param name="pageto"></param>
@@ -382,6 +442,7 @@ namespace PdfArranger {
 
       /// <summary>
       /// liefert eine Liste von Bildern für die Liste der Seitennummern
+      /// <para>Es wird Ghostscript verwendet.</para>
       /// </summary>
       /// <param name="pages"></param>
       /// <param name="dpi"></param>
@@ -395,7 +456,7 @@ namespace PdfArranger {
 
       /// <summary>
       /// liefert das Bild einer Seite in der gewünschten Auflösung
-      /// <para>Das Bild wird von Ghostscript geliefert.</para>
+      /// <para>Es wird Ghostscript verwendet.</para>
       /// </summary>
       /// <param name="page"></param>
       /// <param name="dpi"></param>
