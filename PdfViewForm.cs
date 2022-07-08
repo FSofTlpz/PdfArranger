@@ -7,6 +7,8 @@ using System.Windows.Forms;
 namespace PdfArranger {
    public partial class PdfViewForm : Form {
 
+      const int DPI4SHOWPAGE = 300;
+
       static int newDocument = 0;
 
       public event EventHandler<ListViewPdfPages.PageInfoEventArgs> OnItemDoubleClick;
@@ -86,7 +88,7 @@ namespace PdfArranger {
       /// zeigt alle ausgewälten Seiten in einem eigenen <see cref="PageViewForm"/> an
       /// </summary>
       /// <param name="dpi"></param>
-      public void ShowSelectedPages(int dpi = 300) {
+      public void ShowSelectedPages(int dpi) {
          ListViewPdfPages.PageInfo[] pi = listViewPdfPages1.GetInfo4SelectedItems();
          if (pi != null && pi.Length > 0) {
             Image[] img = listViewPdfPages1.GetImage4SelectedItems(dpi);
@@ -181,7 +183,7 @@ namespace PdfArranger {
       }
 
       private void ToolStripMenuItemShowPage_Click(object sender, EventArgs e) {
-         ShowOnePage(contextmenu4idx, 300);
+         ShowOnePage(contextmenu4idx, DPI4SHOWPAGE);
       }
    }
 }

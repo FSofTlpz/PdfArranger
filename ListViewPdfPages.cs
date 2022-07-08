@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
+using System.Drawing.Imaging;
 using System.IO;
 using System.Windows.Forms;
 
@@ -141,7 +142,7 @@ namespace PdfArranger {
             FileKey = pd.FileKey;
             ListviewItem = pd.ListviewItem != null ? pd.ListviewItem.Clone() as ListViewItem : null;
             if (pd.SourceIsImage)
-               Image = pd.Image.Clone() as Image;
+               Image = imgCopy(pd.Image);
             ImageSize = new SizeF(pd.ImageSize);
          }
 
@@ -351,39 +352,61 @@ namespace PdfArranger {
          return pagecount;
       }
 
+      /// <summary>
+      /// Ein Bild wird als PDF-Seite in der Größe des Bildes eingefügt.
+      /// </summary>
+      /// <param name="imgfile">Dateiname der Bilddatei</param>
+      /// <param name="listindex">Position der Seite (oder anhängen)</param>
+      /// <returns></returns>
       public int AppendImgFile(string imgfile, int listindex = -1) {
          try {
-            Bitmap bmorg = new Bitmap(imgfile);
-            Image img = bmorg.Clone() as Image;
-            bmorg.Dispose();
-
-            float resolution = Math.Max(img.HorizontalResolution, img.VerticalResolution);      // nicht immer sinvoll (?)
-            SizeF imagesize = resolution > 70 ? new SizeF(img.Width / resolution * 25.4F,
-                                                          img.Height / resolution * 25.4F) :
-                                                SizeF.Empty;
-
-            AppendImage(img, imagesize, listindex);
-
+            using (Bitmap bm = new Bitmap(imgfile)) {
+               AppendImage(bm, listindex);
+            }
          } catch (Exception ex) {
             MessageBox.Show(ex.Message, "Fehler", MessageBoxButtons.OK, MessageBoxIcon.Error);
          }
          return 1;
       }
 
-      public void AppendImage(Image image, SizeF imagesize, int listindex = -1) {
+      /// <summary>
+      /// Es wird eine Kopie des Bildes erzeugt und als PDF-Seite in der Größe des Bildes eingefügt.
+      /// </summary>
+      /// <param name="image">Bild</param>
+      /// <param name="listindex">Position der Seite (oder anhängen)</param>
+      public void AppendImage(Image image, int listindex = -1) {
+         float resolution = Math.Max(image.HorizontalResolution, image.VerticalResolution);      // nicht immer sinvoll (?)
+         SizeF pagesize = resolution > 70 ? new SizeF(image.Width / resolution * 25.4F,
+                                                      image.Height / resolution * 25.4F) :
+                                            SizeF.Empty;
+         AppendImage(image, pagesize, listindex);
+      }
+
+      /// <summary>
+      /// Es wird eine Kopie des Bildes erzeugt und als PDF-Seite eingefügt.
+      /// </summary>
+      /// <param name="image">Bild</param>
+      /// <param name="pagesize">Größe der Seite (und des Bildes) in Zoll</param>
+      /// <param name="listindex">Position der Seite (oder anhängen)</param>
+      public void AppendImage(Image image, SizeF pagesize, int listindex = -1) {
          Cursor cur = Cursor;
 
          if (dataCache == null)
             dataCache = new List<PageData>();
 
-         PageData[] pd = new PageData[1];
-
          try {
 
-            pd[0] = new PageData(image.Clone() as Image,
-                                 imagesize,
-                                 PdfFileWrapper.PageRotationType.None) {
-               PageSize = new RectangleF(0, 0, imagesize.Width, imagesize.Height),
+            Bitmap bm = imgCopy(image);
+            if (bm.RawFormat.Equals(ImageFormat.Bmp) ||
+                bm.RawFormat.Equals(ImageFormat.MemoryBmp))
+               bm = AsJPEG(bm, 90);
+
+            PageData[] pd = new PageData[] {
+                                    new PageData(bm,
+                                                 pagesize,
+                                                 PdfFileWrapper.PageRotationType.None) {
+                                                      PageSize = new RectangleF(0, 0, pagesize.Width, pagesize.Height),
+                                                 }
             };
 
             Cursor = Cursors.WaitCursor;
@@ -441,6 +464,11 @@ namespace PdfArranger {
          return null;
       }
 
+      /// <summary>
+      /// liefert für jede ausgewählte Seite ein Bild (oder null)
+      /// </summary>
+      /// <param name="dpi"></param>
+      /// <returns></returns>
       public Image[] GetImage4SelectedItems(int dpi) {
          Image[] images = null;
          if (SelectedCount > 0) {
@@ -449,6 +477,16 @@ namespace PdfArranger {
                images[i] = GetImage4Page(listView1.SelectedIndices[i], dpi);
          }
          return images;
+      }
+
+      /// <summary>
+      /// liefert die Indexe aller ausgewählten Items
+      /// </summary>
+      /// <returns></returns>
+      public int[] GetSelectedItemsIdx() {
+         int[] result = new int[listView1.SelectedIndices.Count];
+         listView1.SelectedIndices.CopyTo(result, 0);
+         return result;
       }
 
       /// <summary>
@@ -461,7 +499,7 @@ namespace PdfArranger {
          if (0 <= idx && idx < dataCache.Count) {
             Image img = null;
             if (dataCache[idx].Filename == PageData.IMAGEPSEUDOFILE)  // (noch) keine PDF-Seite, sondern ein Bild (gescannt oder importiert)
-               img = dataCache[idx].Image.Clone() as Image;
+               img = imgCopy(dataCache[idx].Image);
             else {
                PageData pd = dataCache[idx];
                img = new PdfFileWrapper(pd.Filename,
@@ -471,6 +509,25 @@ namespace PdfArranger {
 
             PageData.RotateImage(img, dataCache[idx].Rotation);
             return img;
+         }
+         return null;
+      }
+
+      /// <summary>
+      /// liefert alle Bilder einer Seite
+      /// </summary>
+      /// <param name="idx"></param>
+      /// <returns></returns>
+      public List<Image> GetAllImagesInPage(int idx) {
+         if (dataCache[idx].Filename == PageData.IMAGEPSEUDOFILE)  // (noch) keine PDF-Seite, sondern ein Bild (gescannt oder importiert)
+            return new List<Image>() {
+                              imgCopy(dataCache[idx].Image)
+            };
+         else {
+            PageData pd = dataCache[idx];
+            PdfFileWrapper pdf = new PdfFileWrapper(PdfFileWrapper.PdfFile(pd.FileKey), MyPasswordProvider, PdfFileWrapper.PdfPassword(pd.FileKey));
+            if (pdf.PasswordIsRight())
+               return pdf.GetImages4Page(pd.PageNo + 1);
          }
          return null;
       }
@@ -540,7 +597,7 @@ namespace PdfArranger {
       /// alle Seiten entfernen
       /// </summary>
       public void RemoveAllItems() {
-         foreach (PageData item in dataCache) 
+         foreach (PageData item in dataCache)
             PdfFileWrapper.UsedPagesDecrement(item.FileKey);
          listView1.Clear();
          OnItemCountChanged?.Invoke(this, new EventArgs());
@@ -622,6 +679,41 @@ namespace PdfArranger {
          if (hit != null && hit.Item != null)
             return hit.Item.Index;
          return -1;
+      }
+
+      /// <summary>
+      /// erzeugt ein JPEG mit der vorgegebenen Qualität
+      /// </summary>
+      /// <param name="img"></param>
+      /// <param name="quali">0 .. 100</param>
+      /// <returns></returns>
+      public static Bitmap AsJPEG(Image img, int quali) {
+         quali = Math.Max(0, Math.Min(quali, 100));
+
+         // Create an Encoder object based on the GUID for the Quality parameter category.
+         Encoder myEncoder = Encoder.Quality;
+         // Create an EncoderParameters object. In this case, there is only one EncoderParameter object in the array.
+         EncoderParameters myEncoderParameters = new EncoderParameters(1);
+         // Save the bitmap with quality level ...
+         EncoderParameter myEncoderParameter = new EncoderParameter(myEncoder, quali);
+         myEncoderParameters.Param[0] = myEncoderParameter;
+
+         // Get an ImageCodecInfo object that represents the JPEG codec.
+         ImageCodecInfo jpgEncoder = null;
+         foreach (ImageCodecInfo enc in ImageCodecInfo.GetImageEncoders()) {
+            if (Equals(enc.FormatID, ImageFormat.Jpeg.Guid)) {
+               jpgEncoder = enc;
+               break;
+            }
+         }
+
+         if (jpgEncoder != null) {
+            MemoryStream ms = new MemoryStream();
+            img.Save(ms, jpgEncoder, myEncoderParameters);
+            ms.Position = 0;
+            return new Bitmap(ms);
+         }
+         return null;
       }
 
       #endregion
@@ -912,6 +1004,29 @@ namespace PdfArranger {
       //   // Note that this only handles simple searches over the entire list, ignoring any other settings.  Handling Direction, StartIndex,
       //   // and the other properties of SearchForVirtualItemEventArgs is up to this handler.
       //}
+
+      /// <summary>
+      /// erzeugt eine echte Kopie des Bildes als <see cref="System.Drawing.Imaging.ImageFormat.MemoryBmp"/> (!) mit dem gleichen Pixelformat und
+      /// der gleichen Auflösung
+      /// <para>(Clone() hält dagegen immer noch GDI-Ressourcen offen)</para>
+      /// </summary>
+      /// <param name="img"></param>
+      /// <returns></returns>
+      static Bitmap imgCopy(Image img) {
+         //return img.Clone() as Bitmap;
+
+         if (img is Bitmap) {
+            Bitmap bmp = (Bitmap)img;
+            return bmp.Clone(new Rectangle(0, 0, img.Width, img.Height), img.PixelFormat);      // DIESES Clone() fkt. hoffentlich korrekt.
+         }
+
+         Bitmap bm = new Bitmap(img.Width, img.Height, img.PixelFormat);
+         bm.SetResolution(img.HorizontalResolution, img.VerticalResolution);
+         using (Graphics g = Graphics.FromImage(bm)) {
+            g.DrawImageUnscaled(img, 0, 0);
+         }
+         return bm;
+      }
 
       string getImageKey(string pdffile, int page) {
          return PdfFileWrapper.GetFileID(pdffile).ToString() + "#" + page.ToString();

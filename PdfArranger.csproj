@@ -161,6 +161,8 @@
     </PackageReference>
   </ItemGroup>
   <ItemGroup>
+    <None Include="Image\paste.png" />
+    <None Include="Image\copy.png" />
     <Content Include="Image\scan.png" />
     <Content Include="Image\scanprops.png" />
     <Content Include="pdf.ico" />

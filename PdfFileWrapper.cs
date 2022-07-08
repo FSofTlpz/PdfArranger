@@ -15,6 +15,7 @@ using iText.Layout;
 #endif
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Text;
@@ -839,7 +840,8 @@ static iText.Kernel.Geom.PageSize X = new iText.Kernel.Geom.PageSize(w, h)
 
          MemoryStream memoryStream = new MemoryStream();
 
-         if (img.RawFormat.Equals(System.Drawing.Imaging.ImageFormat.MemoryBmp))
+         if (img.RawFormat.Equals(System.Drawing.Imaging.ImageFormat.Bmp) ||
+             img.RawFormat.Equals(System.Drawing.Imaging.ImageFormat.MemoryBmp))
             img.Save(memoryStream, System.Drawing.Imaging.ImageFormat.Png);
          else
             img.Save(memoryStream, img.RawFormat);
@@ -904,6 +906,91 @@ static iText.Kernel.Geom.PageSize X = new iText.Kernel.Geom.PageSize(w, h)
          return page;
       }
 
+      public List<Image> GetImages4Page(int pageno) {
+         List<Image> lst = null;
+         if (pdfIText7Open4Read(passwordProvider)) {
+            lst = getImages4Page(pdfIText7Document, pageno);
+            pdfIText7Close();
+         }
+         return lst;
+      }
+
+      /// <summary>
+      /// liefert eine Liste aller Bilder der Seite (1 ...) des Dokumentes
+      /// </summary>
+      /// <param name="doc"></param>
+      /// <param name="pageno"></param>
+      /// <returns></returns>
+      List<Image> getImages4Page(PdfDocument doc, int pageno) {
+         List<Image> imglst = new List<Image>();
+         PdfPage page = doc.GetPage(pageno);
+         PdfDictionary dict = page.GetPdfObject();
+         sampleImages(dict.Get(PdfName.Resources), imglst);
+         //imglst[0].Save("test.png", System.Drawing.Imaging.ImageFormat.Png);
+         return imglst;
+      }
+
+      /// <summary>
+      /// sammelt rekursiv alle Bilder unterhalb dises Objektes ein
+      /// </summary>
+      /// <param name="obj"></param>
+      /// <param name="imglst"></param>
+      void sampleImages(PdfObject obj, List<Image> imglst) {
+         if (obj != null) {
+
+            Debug.WriteLine(obj.ToString());
+
+            if (obj.IsStream()) {
+               Image img = pdfStream2Image(obj as PdfStream);
+               if (img != null)
+                  imglst.Add(img);
+            } else {
+               if (obj.IsDictionary()) {
+                  PdfDictionary dict = (PdfDictionary)obj;
+                  foreach (PdfName name in dict.KeySet()) {
+                     PdfObject obj2 = dict.Get(name);
+                     sampleImages(obj2, imglst);
+                  }
+               }
+            }
+         }
+      }
+
+      /// <summary>
+      /// wandelt einen <see cref="PdfStream"/> in ein Bild um, falls er sich auf ein Bild bezieht
+      /// </summary>
+      /// <param name="stream"></param>
+      /// <returns></returns>
+      Image pdfStream2Image(PdfStream stream) {
+         if (stream.ContainsKey(PdfName.Subtype) &&
+             stream.Get(PdfName.Subtype) == PdfName.Image) {
+            int bitsPerComponent = (int)stream.GetAsInt(PdfName.BitsPerComponent);
+            string colorSpace = stream.GetAsName(PdfName.ColorSpace)?.ToString();
+
+            using (MemoryStream memstream = new MemoryStream(stream.GetBytes())) {
+               memstream.Position = 0;
+               Image imgraw = Image.FromStream(memstream);
+
+               if (imgraw.RawFormat.Equals(System.Drawing.Imaging.ImageFormat.Wmf) ||
+                   imgraw.RawFormat.Equals(System.Drawing.Imaging.ImageFormat.Emf)) {
+                  return imgraw;
+               } else {
+                  // Pixelformat könnte noch berücksichtigt werden: PdfName.DeviceRGB, PdfName.DeviceGray
+                  Bitmap bm = new Bitmap(imgraw.Width, imgraw.Height, imgraw.PixelFormat);
+                  bm.SetResolution(imgraw.HorizontalResolution, imgraw.VerticalResolution);
+                  using (Graphics g = Graphics.FromImage(bm)) {
+                     g.DrawImageUnscaled(imgraw, 0, 0);
+                  }
+                  return bm;
+               }
+            }
+         }
+         return null;
+      }
+
+
+
+
       void pdfIText7Close() {
          if (pdfIText7Document != null) {
             pdfIText7Document.Close();
@@ -911,6 +998,7 @@ static iText.Kernel.Geom.PageSize X = new iText.Kernel.Geom.PageSize(w, h)
             //pdfIText7Document.GetWriter().Close();
             //pdfIText7Document.GetWriter().Dispose();
             pdfIText7Document = null;
+            pdfIText7IsOpen4PageRead = false;
          }
       }
 

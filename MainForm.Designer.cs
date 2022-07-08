@@ -44,8 +44,12 @@ namespace PdfArranger {
          this.ToolStripMenuItem_Horizontal = new System.Windows.Forms.ToolStripMenuItem();
          this.toolStripSeparatorBeforeWins = new System.Windows.Forms.ToolStripSeparator();
          this.toolStrip1 = new System.Windows.Forms.ToolStrip();
+         this.toolStripButton_new = new System.Windows.Forms.ToolStripButton();
          this.toolStripButton_Save = new System.Windows.Forms.ToolStripButton();
          this.toolStripSeparator2 = new System.Windows.Forms.ToolStripSeparator();
+         this.toolStripButton_Copy = new System.Windows.Forms.ToolStripButton();
+         this.toolStripButton_Paste = new System.Windows.Forms.ToolStripButton();
+         this.toolStripSeparator5 = new System.Windows.Forms.ToolStripSeparator();
          this.toolStripButton_RotateLeft = new System.Windows.Forms.ToolStripButton();
          this.toolStripButton_RotateRight = new System.Windows.Forms.ToolStripButton();
          this.toolStripSeparator1 = new System.Windows.Forms.ToolStripSeparator();
@@ -56,7 +60,6 @@ namespace PdfArranger {
          this.toolStripButton_ShowScanProps = new System.Windows.Forms.ToolStripButton();
          this.openFileDialog1 = new System.Windows.Forms.OpenFileDialog();
          this.saveFileDialog1 = new System.Windows.Forms.SaveFileDialog();
-         this.toolStripButton_new = new System.Windows.Forms.ToolStripButton();
          this.menuStrip1.SuspendLayout();
          this.toolStrip1.SuspendLayout();
          this.SuspendLayout();
@@ -91,7 +94,7 @@ namespace PdfArranger {
          this.ToolStripMenuItem_LoadFileInPageView.Image = global::PdfArranger.Properties.Resources.open;
          this.ToolStripMenuItem_LoadFileInPageView.Name = "ToolStripMenuItem_LoadFileInPageView";
          this.ToolStripMenuItem_LoadFileInPageView.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.O)));
-         this.ToolStripMenuItem_LoadFileInPageView.Size = new System.Drawing.Size(352, 26);
+         this.ToolStripMenuItem_LoadFileInPageView.Size = new System.Drawing.Size(348, 22);
          this.ToolStripMenuItem_LoadFileInPageView.Text = "PDF-Datei in PDF-Seitenmappe &importieren";
          this.ToolStripMenuItem_LoadFileInPageView.Click += new System.EventHandler(this.ToolStripMenuItem_LoadFileInPageView_Click);
          // 
@@ -100,7 +103,7 @@ namespace PdfArranger {
          this.ToolStripMenuItem_ScanPage.Image = global::PdfArranger.Properties.Resources.scan;
          this.ToolStripMenuItem_ScanPage.Name = "ToolStripMenuItem_ScanPage";
          this.ToolStripMenuItem_ScanPage.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Alt | System.Windows.Forms.Keys.S)));
-         this.ToolStripMenuItem_ScanPage.Size = new System.Drawing.Size(352, 26);
+         this.ToolStripMenuItem_ScanPage.Size = new System.Drawing.Size(348, 22);
          this.ToolStripMenuItem_ScanPage.Text = "Seite scannen und einfügen";
          this.ToolStripMenuItem_ScanPage.Click += new System.EventHandler(this.ToolStripMenuItem_ScanPage_Click);
          // 
@@ -109,7 +112,7 @@ namespace PdfArranger {
          this.ToolStripMenuItem_NewPageView.Image = global::PdfArranger.Properties.Resources.newpage;
          this.ToolStripMenuItem_NewPageView.Name = "ToolStripMenuItem_NewPageView";
          this.ToolStripMenuItem_NewPageView.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.N)));
-         this.ToolStripMenuItem_NewPageView.Size = new System.Drawing.Size(352, 26);
+         this.ToolStripMenuItem_NewPageView.Size = new System.Drawing.Size(348, 22);
          this.ToolStripMenuItem_NewPageView.Text = "&neue PDF-Seitenmappe anlegen";
          this.ToolStripMenuItem_NewPageView.Click += new System.EventHandler(this.ToolStripMenuItem_NewPageView_Click);
          // 
@@ -118,7 +121,7 @@ namespace PdfArranger {
          this.ToolStripMenuItem_SavePageView.Image = global::PdfArranger.Properties.Resources.save;
          this.ToolStripMenuItem_SavePageView.Name = "ToolStripMenuItem_SavePageView";
          this.ToolStripMenuItem_SavePageView.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.S)));
-         this.ToolStripMenuItem_SavePageView.Size = new System.Drawing.Size(352, 26);
+         this.ToolStripMenuItem_SavePageView.Size = new System.Drawing.Size(348, 22);
          this.ToolStripMenuItem_SavePageView.Text = "PDF-Seitenmappe als PDF-Datei &speichern";
          this.ToolStripMenuItem_SavePageView.Click += new System.EventHandler(this.ToolStripMenuItem_SavePageView_Click);
          // 
@@ -230,6 +233,9 @@ namespace PdfArranger {
             this.toolStripButton_new,
             this.toolStripButton_Save,
             this.toolStripSeparator2,
+            this.toolStripButton_Copy,
+            this.toolStripButton_Paste,
+            this.toolStripSeparator5,
             this.toolStripButton_RotateLeft,
             this.toolStripButton_RotateRight,
             this.toolStripSeparator1,
@@ -242,6 +248,16 @@ namespace PdfArranger {
          this.toolStrip1.Name = "toolStrip1";
          this.toolStrip1.Size = new System.Drawing.Size(614, 27);
          this.toolStrip1.TabIndex = 9;
+         // 
+         // toolStripButton_new
+         // 
+         this.toolStripButton_new.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+         this.toolStripButton_new.Image = global::PdfArranger.Properties.Resources.newpage;
+         this.toolStripButton_new.ImageTransparentColor = System.Drawing.Color.Magenta;
+         this.toolStripButton_new.Name = "toolStripButton_new";
+         this.toolStripButton_new.Size = new System.Drawing.Size(24, 24);
+         this.toolStripButton_new.Text = "neue PDF-Seitenmappe anlegen";
+         this.toolStripButton_new.Click += new System.EventHandler(this.toolStripButton_new_Click);
          // 
          // toolStripButton_Save
          // 
@@ -257,6 +273,31 @@ namespace PdfArranger {
          // 
          this.toolStripSeparator2.Name = "toolStripSeparator2";
          this.toolStripSeparator2.Size = new System.Drawing.Size(6, 27);
+         // 
+         // toolStripButton_Copy
+         // 
+         this.toolStripButton_Copy.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+         this.toolStripButton_Copy.Image = global::PdfArranger.Properties.Resources.copy;
+         this.toolStripButton_Copy.ImageTransparentColor = System.Drawing.Color.Magenta;
+         this.toolStripButton_Copy.Name = "toolStripButton_Copy";
+         this.toolStripButton_Copy.Size = new System.Drawing.Size(24, 24);
+         this.toolStripButton_Copy.Text = "Seite als Bild in die Zwischenablage kopieren";
+         this.toolStripButton_Copy.Click += new System.EventHandler(this.toolStripButton_Copy_Click);
+         // 
+         // toolStripButton_Paste
+         // 
+         this.toolStripButton_Paste.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+         this.toolStripButton_Paste.Image = global::PdfArranger.Properties.Resources.paste;
+         this.toolStripButton_Paste.ImageTransparentColor = System.Drawing.Color.Magenta;
+         this.toolStripButton_Paste.Name = "toolStripButton_Paste";
+         this.toolStripButton_Paste.Size = new System.Drawing.Size(24, 24);
+         this.toolStripButton_Paste.Text = "Bild der Zwischenablage als Seite anhängen";
+         this.toolStripButton_Paste.Click += new System.EventHandler(this.toolStripButton_Paste_Click);
+         // 
+         // toolStripSeparator5
+         // 
+         this.toolStripSeparator5.Name = "toolStripSeparator5";
+         this.toolStripSeparator5.Size = new System.Drawing.Size(6, 27);
          // 
          // toolStripButton_RotateLeft
          // 
@@ -339,16 +380,6 @@ namespace PdfArranger {
          this.saveFileDialog1.DefaultExt = "pdf";
          this.saveFileDialog1.Filter = "PDF-Datei|*.pdf";
          // 
-         // toolStripButton_new
-         // 
-         this.toolStripButton_new.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
-         this.toolStripButton_new.Image = global::PdfArranger.Properties.Resources.newpage;
-         this.toolStripButton_new.ImageTransparentColor = System.Drawing.Color.Magenta;
-         this.toolStripButton_new.Name = "toolStripButton_new";
-         this.toolStripButton_new.Size = new System.Drawing.Size(24, 24);
-         this.toolStripButton_new.Text = "neue PDF-Seitenmappe anlegen";
-         this.toolStripButton_new.Click += new System.EventHandler(this.toolStripButton_new_Click);
-         // 
          // MainForm
          // 
          this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -361,6 +392,8 @@ namespace PdfArranger {
          this.MainMenuStrip = this.menuStrip1;
          this.Name = "MainForm";
          this.Text = "Form1";
+         this.Activated += new System.EventHandler(this.MainForm_Activated);
+         this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.MainForm_FormClosing);
          this.Load += new System.EventHandler(this.MainForm_Load);
          this.Shown += new System.EventHandler(this.MainForm_Shown);
          this.menuStrip1.ResumeLayout(false);
@@ -405,6 +438,9 @@ namespace PdfArranger {
       private System.Windows.Forms.ToolStripMenuItem ToolStripMenuItem_ScanPage;
       private System.Windows.Forms.ToolStripButton toolStripButton_ShowScanProps;
       private System.Windows.Forms.ToolStripButton toolStripButton_new;
+      private System.Windows.Forms.ToolStripButton toolStripButton_Paste;
+      private System.Windows.Forms.ToolStripSeparator toolStripSeparator5;
+      private System.Windows.Forms.ToolStripButton toolStripButton_Copy;
    }
 }
 

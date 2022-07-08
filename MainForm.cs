@@ -1,8 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
+using System.Drawing.Imaging;
 using System.IO;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Windows.Forms;
 
 namespace PdfArranger {
@@ -32,6 +35,8 @@ namespace PdfArranger {
          }
       }
 
+      int stdDPI = 300;
+
 
       public MainForm() {
          InitializeComponent();
@@ -57,12 +62,17 @@ namespace PdfArranger {
             if (o[i].GetType() == typeof(AssemblyCopyrightAttribute))
                title += ", " + ((AssemblyCopyrightAttribute)(o[i])).Copyright;
          Text = title;
+
+         AddClipboardViewer();
       }
 
       private void MainForm_Shown(object sender, EventArgs e) {
          string[] args = Environment.GetCommandLineArgs();
          for (int i = 1; i < args.Length; i++)
             openPdf(args[i]);
+         adjustMenuAndToolbar();
+      }
+      private void MainForm_Activated(object sender, EventArgs e) {
          adjustMenuAndToolbar();
       }
 
@@ -81,6 +91,10 @@ namespace PdfArranger {
                openPdf(filename[i]);
             }
          }
+      }
+
+      private void MainForm_FormClosing(object sender, FormClosingEventArgs e) {
+         RemoveClipboardViewer();
       }
 
       void saveActualPdfView() {
@@ -166,7 +180,7 @@ namespace PdfArranger {
       }
 
       void showSelectedPage() {
-         actualPdfViewForm?.ShowSelectedPages(300);
+         actualPdfViewForm?.ShowSelectedPages(stdDPI);
       }
 
       /// <summary>
@@ -210,6 +224,10 @@ namespace PdfArranger {
                                                       false :
                                                       actualPdfViewForm?.PdfPages.Count > 0;
 
+         toolStripButton_Paste.Enabled = closingform != null ?
+                                                      false :
+                                                      actualPdfViewForm != null && Clipboard.ContainsImage();
+
          toolStripButton_PageView.Enabled =
          ToolStripMenuItem_PageView.Enabled =
          toolStripButton_Remove.Enabled =
@@ -217,7 +235,8 @@ namespace PdfArranger {
          toolStripButton_RotateRight.Enabled =
          ToolStripMenuItem_RotateRight.Enabled =
          toolStripButton_RotateLeft.Enabled =
-         ToolStripMenuItem_RotateLeft.Enabled = closingform != null ?
+         ToolStripMenuItem_RotateLeft.Enabled =
+         toolStripButton_Copy.Enabled = closingform != null ?
                                                       false :
                                                       actualPdfViewForm?.PdfPages.SelectedCount > 0;
 
@@ -226,7 +245,6 @@ namespace PdfArranger {
          ToolStripMenuItem_Horizontal.Enabled =
          ToolStripMenuItem_Vertical.Enabled = mdichilds > 0;
       }
-
 
       #region ToolStripButtons
 
@@ -275,6 +293,69 @@ namespace PdfArranger {
       private void toolStripButton_ShowScanProps_Click(object sender, EventArgs e) {
          showScannerPropsForm(true);
          adjustMenuAndToolbar();
+      }
+
+      private void toolStripButton_Copy_Click(object sender, EventArgs e) {
+         int[] selectedidx = actualPdfViewForm.PdfPages.GetSelectedItemsIdx();
+         if (selectedidx.Length > 0) {
+            ListViewPdfPages.PageInfo pi = actualPdfViewForm.PdfPages.GetInfo4SelectedItems()[0];
+            Image imgresult = null;
+            List<Image> imglst = actualPdfViewForm.PdfPages.GetAllImagesInPage(selectedidx[0]);
+            if (imglst.Count > 0) {
+               foreach (Image img in imglst) {  // Eingebettetes Bild für ganze Seite? Dann das Originalbild verwenden.
+                  float w = img.Width / img.HorizontalResolution * 25.4F;
+                  float h = img.Height / img.VerticalResolution * 25.4F;
+                  if (Math.Abs(pi.PageSize.Width - w) < 0.1 &&          // 0.1mm Diff. erlaubt
+                      Math.Abs(pi.PageSize.Height - h) < 0.1) {
+                     imgresult = img;
+                     break;
+                  }
+               }
+            } else {
+               imgresult = actualPdfViewForm.PdfPages.GetImage4Page(selectedidx[0], stdDPI);
+            }
+            if (imgresult != null)
+               Clipboard.SetImage(imgresult);
+         }
+      }
+
+      private void toolStripButton_Paste_Click(object sender, EventArgs e) {
+         Image img = Clipboard.GetImage();
+         if (img != null && actualPdfViewForm != null) {
+            actualPdfViewForm.PdfPages.AppendImage(img);
+
+
+            //// Create an Encoder object based on the GUID for the Quality parameter category.
+            //Encoder myEncoder = Encoder.Quality;
+            //// Create an EncoderParameters object. In this case, there is only one EncoderParameter object in the array.
+            //EncoderParameters myEncoderParameters = new EncoderParameters(1);
+            //// Save the bitmap with quality level ...
+            //EncoderParameter myEncoderParameter = new EncoderParameter(myEncoder, 90L);
+            //myEncoderParameters.Param[0] = myEncoderParameter;
+
+            //// Get an ImageCodecInfo object that represents the JPEG codec.
+            //ImageCodecInfo jpgEncoder = null;
+            //ImageCodecInfo[] encoders = ImageCodecInfo.GetImageEncoders();
+            //for (int j = 0; j < encoders.Length; j++)
+            //   if (encoders[j].MimeType == "image/jpeg") {
+            //      jpgEncoder = encoders[j];
+            //      break;
+            //   }
+
+            //if (jpgEncoder != null) {
+            //   img.Save("t2.jpg", jpgEncoder, myEncoderParameters);
+
+
+            //   MemoryStream ms = new MemoryStream();
+            //   img.Save(ms, jpgEncoder, myEncoderParameters);
+            //   ms.Position = 0;
+            //   Bitmap bm = new Bitmap(ms);
+            //   actualPdfViewForm.PdfPages.AppendImage(bm);
+            //}
+
+
+
+         }
       }
 
       #endregion
@@ -340,6 +421,82 @@ namespace PdfArranger {
 
       private void ToolStripMenuItem_ScanPage_Click(object sender, EventArgs e) {
          toolStripButton_Scan_Click(null, null);
+      }
+
+      #endregion
+
+      #region ClipboardViewer (native)
+
+      void OnClipboardChanged() {
+         Debug.WriteLine(">>> OnClipboardChanged");
+         adjustMenuAndToolbar();
+      }
+
+      IntPtr hWndNextViewer = IntPtr.Zero;
+
+      void AddClipboardViewer() {
+         if (hWndNextViewer == IntPtr.Zero)
+            hWndNextViewer = SetClipboardViewer(Handle);
+      }
+
+      void RemoveClipboardViewer() {
+         ChangeClipboardChain(Handle, hWndNextViewer);
+      }
+
+      /// <summary>
+      /// Adds the specified window to the chain of clipboard viewers. Clipboard viewer windows receive a WM_DRAWCLIPBOARD message 
+      /// whenever the content of the clipboard changes. This function is used for backward compatibility with earlier versions of Windows.
+      /// </summary>
+      /// <param name="hWndNewViewer">A handle to the window to be added to the clipboard chain.</param>
+      /// <returns>If the function succeeds, the return value identifies the next window in the clipboard viewer chain. 
+      /// If an error occurs or there are no other windows in the clipboard viewer chain, the return value is NULL. 
+      /// To get extended error information, call GetLastError.</returns>
+      [DllImport("User32.dll", CharSet = CharSet.Auto)]
+      public static extern IntPtr SetClipboardViewer(IntPtr hWndNewViewer);
+
+      /// <summary>
+      /// Removes a specified window from the chain of clipboard viewers.
+      /// </summary>
+      /// <param name="hWndRemove"></param>
+      /// <param name="hWndNewNext"></param>
+      /// <returns></returns>
+      [DllImport("User32.dll", CharSet = CharSet.Auto)]
+      public static extern bool ChangeClipboardChain(IntPtr hWndRemove, IntPtr hWndNewNext);
+
+      /// <summary>
+      /// Sends the specified message to a window or windows. The SendMessage function calls the window procedure for the specified window 
+      /// and does not return until the window procedure has processed the message.
+      /// </summary>
+      /// <param name="hwnd"></param>
+      /// <param name="wMsg"></param>
+      /// <param name="wParam"></param>
+      /// <param name="lParam"></param>
+      /// <returns></returns>
+      [DllImport("user32.dll", CharSet = CharSet.Auto)]
+      public static extern int SendMessage(IntPtr hwnd, int wMsg, IntPtr wParam, IntPtr lParam);
+
+      protected override void WndProc(ref Message m) {
+         const int WM_DRAWCLIPBOARD = 0x0308;      /* Sent to the first window in the clipboard viewer chain when the content of the clipboard changes. 
+                                                      This enables a clipboard viewer window to display the new content of the clipboard. */
+         const int WM_CHANGECBCHAIN = 0x030D;      // Sent to the first window in the clipboard viewer chain when a window is being removed from the chain.
+
+         switch (m.Msg) {
+            case WM_DRAWCLIPBOARD:
+               OnClipboardChanged();
+               SendMessage(hWndNextViewer, m.Msg, m.WParam, m.LParam);
+               break;
+
+            case WM_CHANGECBCHAIN:
+               if (m.WParam == hWndNextViewer)
+                  hWndNextViewer = m.LParam;
+               else
+                  SendMessage(hWndNextViewer, m.Msg, m.WParam, m.LParam);
+               break;
+
+            default:
+               base.WndProc(ref m);
+               break;
+         }
       }
 
       #endregion
