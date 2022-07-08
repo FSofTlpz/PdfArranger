@@ -400,12 +400,20 @@ namespace PdfArranger {
          }
       }
 
-      static Image ghostscriptGetPageImage(string pdffile, string password, int page = -1, int dpi = 300) {
+      /// <summary>
+      /// 
+      /// </summary>
+      /// <param name="pdffile"></param>
+      /// <param name="password"></param>
+      /// <param name="page">Seite 1..</param>
+      /// <param name="dpi"></param>
+      /// <returns></returns>
+      static Image ghostscriptGetPageImage(string pdffile, string password, int page = 0, int dpi = 300) {
          try {
             ghostscriptRasterizerOpen(pdffile, password, gvi);
             if (ghostscriptRasterizerIsOpen) {
-               if (0 <= page && page < ghostscriptRasterizer.PageCount)
-                  return ghostscriptRasterizer.GetPage(dpi, page + 1);
+               if (0 < page && page <= ghostscriptRasterizer.PageCount)
+                  return ghostscriptRasterizer.GetPage(dpi, page);
             }
          } catch {
          }
@@ -430,8 +438,8 @@ namespace PdfArranger {
       /// liefert eine Liste von Bildern für den Seitenbereich
       /// <para>Es wird Ghostscript verwendet.</para>
       /// </summary>
-      /// <param name="pagefrom"></param>
-      /// <param name="pageto"></param>
+      /// <param name="pagefrom">von Seite 1 ..</param>
+      /// <param name="pageto">bis Seite 1 ..</param>
       /// <param name="dpi"></param>
       /// <returns></returns>
       public List<Image> GetPageImages(int pagefrom, int pageto, int dpi = 300) {
@@ -445,7 +453,7 @@ namespace PdfArranger {
       /// liefert eine Liste von Bildern für die Liste der Seitennummern
       /// <para>Es wird Ghostscript verwendet.</para>
       /// </summary>
-      /// <param name="pages"></param>
+      /// <param name="pages">Seitenzahlen 1 ..</param>
       /// <param name="dpi"></param>
       /// <returns></returns>
       public List<Image> GetPageImages(IList<int> pages, int dpi = 300) {
@@ -459,10 +467,10 @@ namespace PdfArranger {
       /// liefert das Bild einer Seite in der gewünschten Auflösung
       /// <para>Es wird Ghostscript verwendet.</para>
       /// </summary>
-      /// <param name="page"></param>
+      /// <param name="page">Seitennummer 1 ..</param>
       /// <param name="dpi"></param>
       /// <returns></returns>
-      public Image GetPageImage(int page = -1, int dpi = 300) {
+      public Image GetPageImage(int page = 0, int dpi = 300) {
          return ghostscriptGetPageImage(Filename, Password, page, dpi);
       }
 
@@ -627,7 +635,8 @@ namespace PdfArranger {
                      }
                      pdfIText7AddPage(inp,
                                       pages[i].PageNo,
-                                      pages[i].PageRotationType);
+                                      pages[i].PageRotationType,
+                                      pdfIText7Document);
                   }
                }
             } catch (Exception ex) {
@@ -723,9 +732,10 @@ namespace PdfArranger {
       /// <param name="src"></param>
       /// <param name="orgpageno"></param>
       /// <param name="rotation"></param>
+      /// <param name="dest"></param>
       /// <returns></returns>
       /// <exception cref="Exception"></exception>
-      PdfPage pdfIText7AddPage(PdfFileWrapper src, int orgpageno, PageRotationType rotation) {
+      PdfPage pdfIText7AddPage(PdfFileWrapper src, int orgpageno, PageRotationType rotation, PdfDocument dest) {
          if (src.pdfIText7Open4Read(passwordProvider)) {
             IList<PdfPage> pagelist;
             PdfPage page = null;
@@ -733,7 +743,7 @@ namespace PdfArranger {
 
             try {
 
-               pagelist = src.pdfIText7Document.CopyPagesTo(orgpageno, orgpageno, pdfIText7Document); // Seitenbereich von ... bis ... wird kopiert
+               pagelist = src.pdfIText7Document.CopyPagesTo(orgpageno, orgpageno, dest); // Seitenbereich von ... bis ... wird kopiert
                page = pagelist[0];
                PdfPageSizes.Add(getPageSize(page));
 
@@ -754,17 +764,18 @@ namespace PdfArranger {
                //double h = pagesize.GetHeight() / userunit;     // Höhe in Zoll
                //double w = pagesize.GetWidth() / userunit;      // Breite in Zoll
 
-               PdfFormXObject pageCopy = orgpage.CopyAsFormXObject(pdfIText7Document);
+               PdfFormXObject pageCopy = orgpage.CopyAsFormXObject(dest);
                iText.Layout.Element.Image image = new iText.Layout.Element.Image(pageCopy);
                image.SetMargins(0, 0, 0, 0);
-               image.SetFixedPosition(pdfIText7Document.GetNumberOfPages() + 1, 0, 0);
+               image.SetFixedPosition(dest.GetNumberOfPages() + 1, 0, 0);
                //image.ScaleAbsolute(100, 200)
 
-               Document document2 = new Document(pdfIText7Document);
+               Document document2 = new Document(dest);
                document2.SetMargins(0, 0, 0, 0);
                document2.Add(image);
 
-               page = document2.GetPdfDocument().GetPage(1);
+               //page = document2.GetPdfDocument().GetPage(1);
+               page = document2.GetPdfDocument().GetLastPage();
                PdfPageSizes.Add(getPageSize(page));
             }
 
@@ -877,7 +888,8 @@ static iText.Kernel.Geom.PageSize X = new iText.Kernel.Geom.PageSize(w, h)
          Document document2 = new Document(pdfIText7Document, pagesize);
          document2.SetMargins(0, 0, 0, 0);
          document2.Add(image);
-         PdfPage page = document2.GetPdfDocument().GetPage(1);
+         //PdfPage page = document2.GetPdfDocument().GetPage(1);
+         PdfPage page = document2.GetPdfDocument().GetLastPage();
 
          if (rotation != PageRotationType.None) {
             int rot = page.GetRotation();
@@ -906,9 +918,15 @@ static iText.Kernel.Geom.PageSize X = new iText.Kernel.Geom.PageSize(w, h)
          return page;
       }
 
+      /// <summary>
+      /// 
+      /// </summary>
+      /// <param name="pageno">Seitennummer 1..</param>
+      /// <returns></returns>
       public List<Image> GetImages4Page(int pageno) {
          List<Image> lst = null;
-         if (pdfIText7Open4Read(passwordProvider)) {
+         if (pageno > 0 &&
+             pdfIText7Open4Read(passwordProvider)) {
             lst = getImages4Page(pdfIText7Document, pageno);
             pdfIText7Close();
          }
@@ -937,9 +955,7 @@ static iText.Kernel.Geom.PageSize X = new iText.Kernel.Geom.PageSize(w, h)
       /// <param name="imglst"></param>
       void sampleImages(PdfObject obj, List<Image> imglst) {
          if (obj != null) {
-
-            Debug.WriteLine(obj.ToString());
-
+            //Debug.WriteLine(obj.ToString());
             if (obj.IsStream()) {
                Image img = pdfStream2Image(obj as PdfStream);
                if (img != null)

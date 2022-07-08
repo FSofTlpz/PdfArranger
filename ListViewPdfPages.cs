@@ -55,7 +55,7 @@ namespace PdfArranger {
          public const string IMAGEPSEUDOFILE = "*IMG*";
 
          /// <summary>
-         /// Seitennummer, 0... (!)
+         /// Seitennummer in der PDF-Datei (1 ... ) (!)
          /// </summary>
          public int PageNo {
             get;
@@ -120,9 +120,11 @@ namespace PdfArranger {
          }
 
 
-         public PageData(int page, string filename, string password, PdfFileWrapper.PageRotationType rotation = PdfFileWrapper.PageRotationType.None, ListViewItem lvi = null) {
+         public PageData(int pageno, string filename, string password, PdfFileWrapper.PageRotationType rotation = PdfFileWrapper.PageRotationType.None, ListViewItem lvi = null) {
+            if (pageno < 1)
+               throw new ArgumentException("Seitennummer >= 1!");
             Rotation = rotation;
-            PageNo = page;
+            PageNo = pageno;
             FileKey = PdfFileWrapper.RegisterFile(filename, password);
             ListviewItem = lvi;
          }
@@ -200,6 +202,9 @@ namespace PdfArranger {
             protected set;
          }
 
+         /// <summary>
+         /// Seitennummer in der PDF-Datei (1 ... ) (!)
+         /// </summary>
          public int PageNo {
             get;
             protected set;
@@ -210,9 +215,11 @@ namespace PdfArranger {
             protected set;
          }
 
-         public PageInfo(string filename, int page, SizeF pageSize) {
+         public PageInfo(string filename, int pageno, SizeF pageSize) {
+            if (pageno < 1)
+               throw new ArgumentException("Seitennummer >= 1!");
             Filename = filename;
-            PageNo = page;
+            PageNo = pageno;
             PageSize = pageSize;
          }
 
@@ -330,7 +337,7 @@ namespace PdfArranger {
 
             PageData[] pd = new PageData[pagecount];
             for (int i = 0; i < pd.Length; i++) {
-               pd[i] = new PageData(i, pdffile, password, PdfFileWrapper.PageRotationType.None) {
+               pd[i] = new PageData(i + 1, pdffile, password, PdfFileWrapper.PageRotationType.None) {
                   PageSize = pdf.PdfPageSizes[i],
                };
             }
@@ -492,22 +499,22 @@ namespace PdfArranger {
       /// <summary>
       /// liefert ein Bild der gewünschten Seite
       /// </summary>
-      /// <param name="idx">Index in der akt. Auflistung</param>
+      /// <param name="itemidx">Index in der akt. Auflistung</param>
       /// <param name="dpi">Auflösung des Bildes</param>
       /// <returns></returns>
-      public Image GetImage4Page(int idx, int dpi) {
-         if (0 <= idx && idx < dataCache.Count) {
+      public Image GetImage4Page(int itemidx, int dpi) {
+         if (0 <= itemidx && itemidx < dataCache.Count) {
             Image img = null;
-            if (dataCache[idx].Filename == PageData.IMAGEPSEUDOFILE)  // (noch) keine PDF-Seite, sondern ein Bild (gescannt oder importiert)
-               img = imgCopy(dataCache[idx].Image);
+            if (dataCache[itemidx].Filename == PageData.IMAGEPSEUDOFILE)  // (noch) keine PDF-Seite, sondern ein Bild (gescannt oder importiert)
+               img = imgCopy(dataCache[itemidx].Image);
             else {
-               PageData pd = dataCache[idx];
+               PageData pd = dataCache[itemidx];
                img = new PdfFileWrapper(pd.Filename,
                                         MyPasswordProvider,
                                         pd.Password).GetPageImage(pd.PageNo, dpi);
             }
 
-            PageData.RotateImage(img, dataCache[idx].Rotation);
+            PageData.RotateImage(img, dataCache[itemidx].Rotation);
             return img;
          }
          return null;
@@ -549,13 +556,13 @@ namespace PdfArranger {
       /// <summary>
       /// liefert Infos für eine Seite
       /// </summary>
-      /// <param name="pageidx"></param>
+      /// <param name="itemidx">Index des Elementes im LisView</param>
       /// <returns></returns>
-      public PageInfo GetInfo4Page(int pageidx) {
-         return 0 <= pageidx && pageidx < dataCache.Count ?
-                        new PageInfo(dataCache[pageidx].Filename,
-                                     dataCache[pageidx].PageNo,
-                                     new SizeF(dataCache[pageidx].PageSize.Width, dataCache[pageidx].PageSize.Height)) :
+      public PageInfo GetInfo4Page(int itemidx) {
+         return 0 <= itemidx && itemidx < dataCache.Count ?
+                        new PageInfo(dataCache[itemidx].Filename,
+                                     dataCache[itemidx].PageNo,
+                                     new SizeF(dataCache[itemidx].PageSize.Width, dataCache[itemidx].PageSize.Height)) :
                         null;
       }
 
@@ -607,11 +614,11 @@ namespace PdfArranger {
       /// liefert den akt. Index dieser Seite
       /// </summary>
       /// <param name="filename"></param>
-      /// <param name="pageidx"></param>
+      /// <param name="pageno"></param>
       /// <returns>negativ wenn nicht gefunden</returns>
-      public int GetIdx4Page(string filename, int pageidx) {
+      public int GetIdx4Page(string filename, int pageno) {
          for (int i = 0; i < dataCache.Count; i++)
-            if (dataCache[i].PageNo == pageidx &&
+            if (dataCache[i].PageNo == pageno &&
                 dataCache[i].Filename == filename)
                return i;
          return -1;
@@ -645,7 +652,7 @@ namespace PdfArranger {
                                                               pd.ImageSize));
                      else
                         pages.Add(new PdfFileWrapper.PageItem(pd.FileKey,
-                                                              pd.PageNo + 1,     // 1-basiert !
+                                                              pd.PageNo,
                                                               pd.Rotation));
                   }
 
@@ -1028,12 +1035,12 @@ namespace PdfArranger {
          return bm;
       }
 
-      string getImageKey(string pdffile, int page) {
-         return PdfFileWrapper.GetFileID(pdffile).ToString() + "#" + page.ToString();
+      string getImageKey(string pdffile, int pageno) {
+         return PdfFileWrapper.GetFileID(pdffile).ToString() + "#" + pageno.ToString();
       }
 
-      void registerImage(Image img, int page, PdfFileWrapper.PageRotationType rotation) {
-         string imgkey = getImageKey(PageData.IMAGEPSEUDOFILE, page);
+      void registerImage(Image img, int pageno, PdfFileWrapper.PageRotationType rotation) {
+         string imgkey = getImageKey(PageData.IMAGEPSEUDOFILE, pageno);
 
          ImageList il = listView1.LargeImageList;
          if (il != null) {
@@ -1080,9 +1087,9 @@ namespace PdfArranger {
       /// registriert das Seiten-Image für die Seite der PDF-Datei
       /// </summary>
       /// <param name="pdffile"></param>
-      /// <param name="page"></param>
-      void registerImage(string pdffile, string password, int page, PdfFileWrapper.PageRotationType rotation) {
-         string imgkey = getImageKey(pdffile, page);
+      /// <param name="pageno"></param>
+      void registerImage(string pdffile, string password, int pageno, PdfFileWrapper.PageRotationType rotation) {
+         string imgkey = getImageKey(pdffile, pageno);
 
          ImageList il = listView1.LargeImageList;
          if (il != null) {
@@ -1097,7 +1104,7 @@ namespace PdfArranger {
                      dataCache[i].ListviewItem.ImageIndex--;
             }
 
-            Image img = new PdfFileWrapper(pdffile, MyPasswordProvider, password).GetPageImage(page, 50);
+            Image img = new PdfFileWrapper(pdffile, MyPasswordProvider, password).GetPageImage(pageno, 50);
             Bitmap bm = new Bitmap(listView1.LargeImageList.ImageSize.Width, listView1.LargeImageList.ImageSize.Height);
             Graphics g = Graphics.FromImage(bm);
             g.Clear(listView1.BackColor);
@@ -1133,31 +1140,31 @@ namespace PdfArranger {
          ListViewItem lvi = pd.SourceIsImage ?
                                  createListViewItem4Page(pd.Image, pd.PageNo, pd.Rotation) :
                                  createListViewItem4Page(pd.Filename, pd.Password, pd.PageNo, pd.Rotation);
-         lvi.ToolTipText = "Seite " + (pd.PageNo + 1) + ", " + pd.Filename;
+         lvi.ToolTipText = "Seite " + pd.PageNo + ", " + pd.Filename;
          lvi.Tag = pd;
          pd.ListviewItem = lvi;
       }
 
-      ListViewItem createListViewItem4Page(string pdffile, string password, int page, PdfFileWrapper.PageRotationType rotation) {
-         registerImage(pdffile, password, page, rotation);
+      ListViewItem createListViewItem4Page(string pdffile, string password, int pageno, PdfFileWrapper.PageRotationType rotation) {
+         registerImage(pdffile, password, pageno, rotation);
 
          ListViewItem lvi = new ListViewItem() {
             BackColor = Color.LightGreen,
             //ImageKey = imgkey,   // fkt. NICHT im VirtualMode !!!!!
-            ImageIndex = listView1.LargeImageList.Images.IndexOfKey(getImageKey(pdffile, page)),
-            Text = "Seite " + (page + 1),
+            ImageIndex = listView1.LargeImageList.Images.IndexOfKey(getImageKey(pdffile, pageno)),
+            Text = "Seite " + pageno,
          };
 
          return lvi;
       }
 
-      ListViewItem createListViewItem4Page(Image img, int page, PdfFileWrapper.PageRotationType rotation) {
-         registerImage(img, page, rotation);
+      ListViewItem createListViewItem4Page(Image img, int pageno, PdfFileWrapper.PageRotationType rotation) {
+         registerImage(img, pageno, rotation);
 
          ListViewItem lvi = new ListViewItem() {
             BackColor = Color.LightYellow,
-            ImageIndex = listView1.LargeImageList.Images.IndexOfKey(getImageKey(PageData.IMAGEPSEUDOFILE, page)),
-            Text = "Seite " + (page + 1),
+            ImageIndex = listView1.LargeImageList.Images.IndexOfKey(getImageKey(PageData.IMAGEPSEUDOFILE, pageno)),
+            Text = "Seite " + pageno,
          };
 
          return lvi;

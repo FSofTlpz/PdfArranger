@@ -321,41 +321,8 @@ namespace PdfArranger {
 
       private void toolStripButton_Paste_Click(object sender, EventArgs e) {
          Image img = Clipboard.GetImage();
-         if (img != null && actualPdfViewForm != null) {
+         if (img != null && actualPdfViewForm != null) 
             actualPdfViewForm.PdfPages.AppendImage(img);
-
-
-            //// Create an Encoder object based on the GUID for the Quality parameter category.
-            //Encoder myEncoder = Encoder.Quality;
-            //// Create an EncoderParameters object. In this case, there is only one EncoderParameter object in the array.
-            //EncoderParameters myEncoderParameters = new EncoderParameters(1);
-            //// Save the bitmap with quality level ...
-            //EncoderParameter myEncoderParameter = new EncoderParameter(myEncoder, 90L);
-            //myEncoderParameters.Param[0] = myEncoderParameter;
-
-            //// Get an ImageCodecInfo object that represents the JPEG codec.
-            //ImageCodecInfo jpgEncoder = null;
-            //ImageCodecInfo[] encoders = ImageCodecInfo.GetImageEncoders();
-            //for (int j = 0; j < encoders.Length; j++)
-            //   if (encoders[j].MimeType == "image/jpeg") {
-            //      jpgEncoder = encoders[j];
-            //      break;
-            //   }
-
-            //if (jpgEncoder != null) {
-            //   img.Save("t2.jpg", jpgEncoder, myEncoderParameters);
-
-
-            //   MemoryStream ms = new MemoryStream();
-            //   img.Save(ms, jpgEncoder, myEncoderParameters);
-            //   ms.Position = 0;
-            //   Bitmap bm = new Bitmap(ms);
-            //   actualPdfViewForm.PdfPages.AppendImage(bm);
-            //}
-
-
-
-         }
       }
 
       #endregion
