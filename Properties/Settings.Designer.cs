@@ -12,7 +12,7 @@ namespace PdfArranger.Properties {
     
     
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
-    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.VisualStudio.Editors.SettingsDesigner.SettingsSingleFileGenerator", "17.2.0.0")]
+    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.VisualStudio.Editors.SettingsDesigner.SettingsSingleFileGenerator", "17.3.0.0")]
     internal sealed partial class Settings : global::System.Configuration.ApplicationSettingsBase {
         
         private static Settings defaultInstance = ((Settings)(global::System.Configuration.ApplicationSettingsBase.Synchronized(new Settings())));
@@ -20,126 +20,6 @@ namespace PdfArranger.Properties {
         public static Settings Default {
             get {
                 return defaultInstance;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("")]
-        public string ScannerName {
-            get {
-                return ((string)(this["ScannerName"]));
-            }
-            set {
-                this["ScannerName"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("200")]
-        public uint ScannerDpi {
-            get {
-                return ((uint)(this["ScannerDpi"]));
-            }
-            set {
-                this["ScannerDpi"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("A4 true")]
-        public string ScannerPaperSize {
-            get {
-                return ((string)(this["ScannerPaperSize"]));
-            }
-            set {
-                this["ScannerPaperSize"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("Color")]
-        public string ScannerImageType {
-            get {
-                return ((string)(this["ScannerImageType"]));
-            }
-            set {
-                this["ScannerImageType"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("0")]
-        public double ScannerBrightness {
-            get {
-                return ((double)(this["ScannerBrightness"]));
-            }
-            set {
-                this["ScannerBrightness"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("0")]
-        public double ScannerContrast {
-            get {
-                return ((double)(this["ScannerContrast"]));
-            }
-            set {
-                this["ScannerContrast"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("JPG")]
-        public string ScannerFiletype {
-            get {
-                return ((string)(this["ScannerFiletype"]));
-            }
-            set {
-                this["ScannerFiletype"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("90")]
-        public int ScannerQuali {
-            get {
-                return ((int)(this["ScannerQuali"]));
-            }
-            set {
-                this["ScannerQuali"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("0")]
-        public double ScannerDeltaX {
-            get {
-                return ((double)(this["ScannerDeltaX"]));
-            }
-            set {
-                this["ScannerDeltaX"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("0")]
-        public double ScannerDeltaY {
-            get {
-                return ((double)(this["ScannerDeltaY"]));
-            }
-            set {
-                this["ScannerDeltaY"] = value;
             }
         }
     }

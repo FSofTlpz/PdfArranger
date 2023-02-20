@@ -1,36 +1,5 @@
 ﻿<?xml version='1.0' encoding='utf-8'?>
-<SettingsFile xmlns="http://schemas.microsoft.com/VisualStudio/2004/01/settings" CurrentProfile="(Default)" GeneratedClassNamespace="PdfArranger.Properties" GeneratedClassName="Settings">
+<SettingsFile xmlns="http://schemas.microsoft.com/VisualStudio/2004/01/settings" CurrentProfile="(Default)">
   <Profiles />
-  <Settings>
-    <Setting Name="ScannerName" Type="System.String" Scope="User">
-      <Value Profile="(Default)" />
-    </Setting>
-    <Setting Name="ScannerDpi" Type="System.UInt32" Scope="User">
-      <Value Profile="(Default)">200</Value>
-    </Setting>
-    <Setting Name="ScannerPaperSize" Type="System.String" Scope="User">
-      <Value Profile="(Default)">A4 true</Value>
-    </Setting>
-    <Setting Name="ScannerImageType" Type="System.String" Scope="User">
-      <Value Profile="(Default)">Color</Value>
-    </Setting>
-    <Setting Name="ScannerBrightness" Type="System.Double" Scope="User">
-      <Value Profile="(Default)">0</Value>
-    </Setting>
-    <Setting Name="ScannerContrast" Type="System.Double" Scope="User">
-      <Value Profile="(Default)">0</Value>
-    </Setting>
-    <Setting Name="ScannerFiletype" Type="System.String" Scope="User">
-      <Value Profile="(Default)">JPG</Value>
-    </Setting>
-    <Setting Name="ScannerQuali" Type="System.Int32" Scope="User">
-      <Value Profile="(Default)">90</Value>
-    </Setting>
-    <Setting Name="ScannerDeltaX" Type="System.Double" Scope="User">
-      <Value Profile="(Default)">0</Value>
-    </Setting>
-    <Setting Name="ScannerDeltaY" Type="System.Double" Scope="User">
-      <Value Profile="(Default)">0</Value>
-    </Setting>
-  </Settings>
+  <Settings />
 </SettingsFile>

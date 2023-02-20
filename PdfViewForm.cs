@@ -11,6 +11,9 @@ namespace PdfArranger {
 
       static int newDocument = 0;
 
+      AppData appData;
+
+
       public event EventHandler<ListViewPdfPages.PageInfoEventArgs> OnItemDoubleClick;
 
       public event EventHandler OnCountChanged;
@@ -32,15 +35,17 @@ namespace PdfArranger {
       }
 
 
-      public PdfViewForm() {
+      public PdfViewForm(AppData appData) {
          InitializeComponent();
          newDocument++;
+         this.appData = appData;
       }
 
       private void PdfViewForm_Load(object sender, EventArgs e) {
          Text = "PDF-Seitensammlung " + newDocument + (string.IsNullOrEmpty(Filename) ?
                            "" :
                            ", " + Path.GetFileName(Filename));
+         listViewPdfPages1.SetAppData(appData);
       }
 
       private void PdfViewForm_Shown(object sender, EventArgs e) {

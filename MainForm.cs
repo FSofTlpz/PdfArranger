@@ -1,4 +1,5 @@
-﻿using System;
+﻿using FSofTUtils.WIAHelper;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
@@ -11,7 +12,10 @@ using System.Windows.Forms;
 namespace PdfArranger {
    public partial class MainForm : Form {
 
-      ScannerPropsForm scannerPropsForm;
+      /*
+       * 
+       * CTRL + Mouse-Wheel      Zoom
+       */
 
       /// <summary>
       /// liefert die akt. <see cref="PdfViewForm"/> oder null
@@ -26,16 +30,11 @@ namespace PdfArranger {
          }
       }
 
-      /// <summary>
-      /// Ist der Scanner konfiguriert?
-      /// </summary>
-      bool scannerIsConfigurated {
-         get {
-            return scannerPropsForm != null && scannerPropsForm.ScannerIsInit;
-         }
-      }
+      readonly int stdDPI = 300;
 
-      int stdDPI = 300;
+      readonly int stdPanelScannersideboardWidth = 0;
+
+      AppData appData;
 
 
       public MainForm() {
@@ -46,6 +45,8 @@ namespace PdfArranger {
          //DragOver += MainForm_DragOver;
          DragDrop += MainForm_DragDrop;
          AllowDrop = true;
+
+         stdPanelScannersideboardWidth = panelScannersideboard.Width;
       }
 
       private void MainForm_Load(object sender, EventArgs e) {
@@ -64,6 +65,10 @@ namespace PdfArranger {
          Text = title;
 
          AddClipboardViewer();
+
+         appData = new AppData("FSofT\\PdfArranger");
+
+         startScannerSideboard();
       }
 
       private void MainForm_Shown(object sender, EventArgs e) {
@@ -72,6 +77,7 @@ namespace PdfArranger {
             openPdf(args[i]);
          adjustMenuAndToolbar();
       }
+
       private void MainForm_Activated(object sender, EventArgs e) {
          adjustMenuAndToolbar();
       }
@@ -95,6 +101,8 @@ namespace PdfArranger {
 
       private void MainForm_FormClosing(object sender, FormClosingEventArgs e) {
          RemoveClipboardViewer();
+         saveScannerStatus();
+         appData.Save();
       }
 
       void saveActualPdfView() {
@@ -142,7 +150,7 @@ namespace PdfArranger {
          Cursor cur = Cursor;
          Cursor = Cursors.WaitCursor;
          try {
-            PdfViewForm form = new PdfViewForm() {
+            PdfViewForm form = new PdfViewForm(appData) {
                Filename = filename,
                MdiParent = this,
             };
@@ -183,31 +191,6 @@ namespace PdfArranger {
          actualPdfViewForm?.ShowSelectedPages(stdDPI);
       }
 
-      /// <summary>
-      /// Form sichtbar machen (ev. erst erzeugen) oder unsichtbar machen
-      /// </summary>
-      /// <param name="on"></param>
-      void showScannerPropsForm(bool on) {
-         if (Array.Find(OwnedForms, (form) => { return form.Equals(scannerPropsForm); }) == null) // Ex. nicht mehr in der Auflistung?
-            scannerPropsForm = null;
-
-         if (on) {
-            if (scannerPropsForm != null) {
-               scannerPropsForm.Visible = true;
-            } else {
-               scannerPropsForm = new ScannerPropsForm();
-               scannerPropsForm.OnInitChanged += ScannerPropsForm_OnInitChanged;
-               scannerPropsForm.Show(this);
-
-            }
-            scannerPropsForm.Activate();
-         } else {
-            if (scannerPropsForm != null) {
-               scannerPropsForm.Visible = false;
-            }
-         }
-      }
-
       private void ScannerPropsForm_OnInitChanged(object sender, EventArgs e) {
          adjustMenuAndToolbar();
       }
@@ -216,8 +199,7 @@ namespace PdfArranger {
          int mdichilds = MdiChildren.Length - (closingform != null ? 1 : 0);
 
          toolStripButton_scan.Enabled =
-         ToolStripMenuItem_ScanPage.Enabled = scannerIsConfigurated &&
-                                              mdichilds > 0;
+         ToolStripMenuItem_ScanPage.Enabled = ScannerIsInit; // && mdichilds > 0;
 
          toolStripButton_Save.Enabled =
          ToolStripMenuItem_SavePageView.Enabled = closingform != null ?
@@ -239,6 +221,11 @@ namespace PdfArranger {
          toolStripButton_Copy.Enabled = closingform != null ?
                                                       false :
                                                       actualPdfViewForm?.PdfPages.SelectedCount > 0;
+
+         toolStripButton_zoomin.Enabled =
+         toolStripButton_zoomout.Enabled =
+         ToolStripMenuItem_MarkAllPages.Enabled =
+         toolStripButton_Copy.Enabled = closingform == null;
 
          ToolStripMenuItem_Icon.Enabled =
          ToolStripMenuItem_Cascade.Enabled =
@@ -275,12 +262,12 @@ namespace PdfArranger {
       }
 
       private void toolStripButton_Scan_Click(object sender, EventArgs e) {
-         if (actualPdfViewForm != null) {
-            if (!scannerIsConfigurated)
-               showScannerPropsForm(true);
+         if (actualPdfViewForm == null)
+            toolStripButton_new_Click(null, EventArgs.Empty);
 
-            if (scannerIsConfigurated) {
-               Image img = scannerPropsForm.GetImage(out double width, out double height);
+         if (actualPdfViewForm != null) {
+            if (ScannerIsInit) {
+               Image img = GetImageFromScanner(out double width, out double height);
                if (img != null && actualPdfViewForm != null) {
                   actualPdfViewForm.PdfPages.AppendImage(img, new SizeF((float)width, (float)height));
                   actualPdfViewForm.PdfPages.EnsureVisible(actualPdfViewForm.PdfPages.Count - 1);        // neue Seite anzeigen
@@ -288,11 +275,6 @@ namespace PdfArranger {
             }
             adjustMenuAndToolbar();
          }
-      }
-
-      private void toolStripButton_ShowScanProps_Click(object sender, EventArgs e) {
-         showScannerPropsForm(true);
-         adjustMenuAndToolbar();
       }
 
       private void toolStripButton_Copy_Click(object sender, EventArgs e) {
@@ -321,8 +303,16 @@ namespace PdfArranger {
 
       private void toolStripButton_Paste_Click(object sender, EventArgs e) {
          Image img = Clipboard.GetImage();
-         if (img != null && actualPdfViewForm != null) 
+         if (img != null && actualPdfViewForm != null)
             actualPdfViewForm.PdfPages.AppendImage(img);
+      }
+
+      private void toolStripButton_zoomin_Click(object sender, EventArgs e) {
+         actualPdfViewForm?.PdfPages.ChangeImageSize(1);
+      }
+
+      private void toolStripButton_zoomout_Click(object sender, EventArgs e) {
+         actualPdfViewForm?.PdfPages.ChangeImageSize(-1);
       }
 
       #endregion
@@ -388,6 +378,9 @@ namespace PdfArranger {
 
       private void ToolStripMenuItem_ScanPage_Click(object sender, EventArgs e) {
          toolStripButton_Scan_Click(null, null);
+      }
+      private void ToolStripMenuItem_MarkAllPages_Click(object sender, EventArgs e) {
+         actualPdfViewForm?.PdfPages.SelectAllItems();
       }
 
       #endregion
@@ -464,6 +457,482 @@ namespace PdfArranger {
                base.WndProc(ref m);
                break;
          }
+      }
+
+      #endregion
+
+      #region Scannerconfiguration
+
+      /// <summary>
+      /// Kann ein Scanner verwendet werden?
+      /// </summary>
+      public bool ScannerIsInit {
+         get => scanner != null;
+      }
+
+      Scanner scanner;
+
+      List<PaperSizeItem> papersizelist = new List<PaperSizeItem>();
+
+      List<int> dpilist = new List<int>();
+
+      string ScannerName {
+         get => scanner != null ? button_Scanner.Text : "";
+         set => button_Scanner.Text = value;
+      }
+
+      int Dpi {
+         get => scanner != null ? dpilist[comboBox_DPI.SelectedIndex] : 0;
+         set {
+            if (scanner != null) {
+               for (int i = 0; i < dpilist.Count; i++) {
+                  if (dpilist[i] == value) {
+                     comboBox_DPI.SelectedIndex = i;
+                     break;
+                  }
+               }
+            }
+         }
+      }
+
+      PaperSizeItem PaperSize {
+         get => scanner != null ? papersizelist[comboBox_PaperSize.SelectedIndex] : null;
+         set {
+            if (scanner != null) {
+               for (int i = 0; i < papersizelist.Count; i++) {
+                  if (papersizelist[i].PaperSize == value.PaperSize &&
+                      papersizelist[i].Portrait == value.Portrait) {
+                     comboBox_PaperSize.SelectedIndex = i;
+                     break;
+                  }
+               }
+            }
+         }
+      }
+
+      Scanner.ImageType ImageType {
+         get {
+            if (scanner != null) {
+               if (radioButton_Color.Checked)
+                  return Scanner.ImageType.Color;
+               if (radioButton_Grayscale.Checked)
+                  return Scanner.ImageType.Grayscale;
+               if (radioButton_BlackWhite.Checked)
+                  return Scanner.ImageType.Text;
+            }
+            return Scanner.ImageType.Nothing;
+         }
+         set {
+            switch (value) {
+               case Scanner.ImageType.Nothing:
+               case Scanner.ImageType.Color: radioButton_Color.Checked = true; break;
+               case Scanner.ImageType.Grayscale: radioButton_Grayscale.Checked = true; break;
+               case Scanner.ImageType.Text: radioButton_BlackWhite.Checked = true; break;
+            }
+         }
+      }
+
+      /// <summary>
+      /// -1 .. +1
+      /// </summary>
+      double Brightness {
+         get => scanner != null ? (double)numericUpDown_Brightness.Value / 100 : 0;
+         set {
+            numericUpDown_Brightness.Value = (int)(value * 100);
+         }
+      }
+
+      /// <summary>
+      /// -1 .. +1
+      /// </summary>
+      double Contrast {
+         get => scanner != null ? (double)numericUpDown_Contrast.Value / 100 : 0;
+         set {
+            numericUpDown_Contrast.Value = (int)(value * 100);
+         }
+      }
+
+      string Filetype {
+         get {
+            if (radioButton_BMP.Checked)
+               return "BMP";
+            if (radioButton_JPG.Checked)
+               return "JPG";
+            if (radioButton_PNG.Checked)
+               return "PNG";
+            if (radioButton_TIF.Checked)
+               return "TIF";
+            return null;
+         }
+         set {
+            if (value == "BMP")
+               radioButton_BMP.Checked = true;
+            if (value == "JPG")
+               radioButton_JPG.Checked = true;
+            if (value == "PNG")
+               radioButton_PNG.Checked = true;
+            if (value == "TIF")
+               radioButton_TIF.Checked = true;
+         }
+      }
+
+      int Quali {
+         get => (int)numericUpDown_JPGQuali.Value;
+         set => numericUpDown_JPGQuali.Value = value;
+      }
+
+      double DeltaX {
+         get => (double)numericUpDown_DeltaX.Value;
+         set => numericUpDown_DeltaX.Value = (decimal)value;
+      }
+
+      double DeltaY {
+         get => (double)numericUpDown_DeltaY.Value;
+         set => numericUpDown_DeltaY.Value = (decimal)value;
+      }
+
+
+      public class PaperSizeItem {
+
+         public Scanner.PaperSize PaperSize {
+            get;
+            protected set;
+         }
+
+         public bool Portrait {
+            get;
+            protected set;
+         }
+
+
+         public PaperSizeItem(Scanner.PaperSize papersize, bool portrait) {
+            PaperSize = papersize;
+            Portrait = portrait;
+         }
+
+         override public string ToString() {
+            return PaperSize.ToString() + " " + Portrait;
+         }
+      }
+
+
+      void startScannerSideboard() {
+         numericUpDown_JPGQuali.Value = 90;
+         radioButton_JPG_CheckedChanged(null, null);
+         init4Scanner(null);
+         loadScannerStatus();
+      }
+
+      void scannerDataChanged() {
+         saveScannerStatus();
+         adjustMenuAndToolbar();
+      }
+
+      void init4Scanner(Scanner scanner) {
+         comboBox_DPI.Items.Clear();
+         comboBox_PaperSize.Items.Clear();
+         papersizelist.Clear();
+         dpilist.Clear();
+
+         if (scanner != null) {
+
+            comboBox_PaperSize.Enabled =
+            comboBox_DPI.Enabled =
+            groupBox1.Enabled =
+            groupBox2.Enabled =
+            numericUpDown_Brightness.Enabled =
+            numericUpDown_Contrast.Enabled =
+            numericUpDown_DeltaX.Enabled =
+            numericUpDown_DeltaY.Enabled = true;
+
+            ScannerName = scanner.Name();
+
+            if (scanner != null) {
+
+               bool error = false;
+               try {
+                  List<int> dpilst = scanner.GetProperties(out int left,
+                                                           out int top,
+                                                           out int widthpixel,
+                                                           out int heightpixel,
+                                                           out Scanner.ImageType imgtype,
+                                                           out Scanner.ImageTypeExt imgtypeext,
+                                                           out double brightness,
+                                                           out double contrast,
+                                                           out int dpi);
+                  foreach (var item in dpilst) {
+                     dpilist.Add(item);
+                     comboBox_DPI.Items.Add(item);
+                  }
+                  Dpi = dpi;
+
+                  ImageType = imgtype;
+
+                  foreach (var item in scanner.GetValidPaperFormats()) {
+                     comboBox_PaperSize.Items.Add(string.Format("{0}, {1}, {2:0} mm x {3:0} mm",
+                                                                item.PaperSize.ToString(),
+                                                                item.Width < item.Height ? "Hochformat" : "Querformat",
+                                                                item.Width,
+                                                                item.Height));
+                     papersizelist.Add(new PaperSizeItem(item.PaperSize, item.Width < item.Height));
+                  }
+
+                  PaperSizeItem psi = getPaperSizeItem((int)Math.Round(widthpixel / 25.4), (int)Math.Round(heightpixel / 25.4));
+                  if (psi != null)
+                     PaperSize = psi;
+                  else
+                     PaperSize = papersizelist[0];
+
+                  Brightness = brightness;
+                  Contrast = contrast;
+                  Filetype = "JPG";
+
+                  numericUpDown_JPGQuali.Enabled = false;
+
+               } catch (COMException ex) {
+                  showError(ErrorCodes.GetErrorText((uint)ex.ErrorCode));
+                  error = true;
+               } catch (Exception ex) {
+                  showError(ex.Message);
+                  error = true;
+               } finally {
+                  if (error) {
+                     scanner = null;
+                     init4Scanner(scanner);
+                     scannerDataChanged();
+                  }
+               }
+            }
+
+         } else {
+
+            comboBox_PaperSize.Enabled =
+            comboBox_DPI.Enabled =
+            groupBox1.Enabled =
+            groupBox2.Enabled =
+            numericUpDown_Brightness.Enabled =
+            numericUpDown_Contrast.Enabled =
+            numericUpDown_DeltaX.Enabled =
+            numericUpDown_DeltaY.Enabled = false;
+            ScannerName = "Scannerauswahl";
+
+         }
+      }
+
+      PaperSizeItem getPaperSizeItem(int widthmm, int heightmm) {
+         foreach (var item in scanner.GetValidPaperFormats()) {
+            if (item.Width == widthmm &&
+                item.Height == heightmm)
+               return new PaperSizeItem(item.PaperSize, item.Width < item.Height);
+         }
+         return null;
+      }
+
+      private void button_Scanner_Click(object sender, EventArgs e) {
+         Scanner oldscanner = scanner;
+         try {
+            scanner = Scanner.Connect(-1);
+            init4Scanner(scanner);
+         } catch (COMException ex) {
+            showError(ErrorCodes.GetErrorText((uint)ex.ErrorCode));
+         } catch (Exception ex) {
+            showError(ex.Message);
+         }
+         if ((oldscanner != null) != (scanner != null))
+            scannerDataChanged();
+      }
+
+      private void radioButton_JPG_CheckedChanged(object sender, EventArgs e) {
+         numericUpDown_JPGQuali.Enabled = radioButton_JPG.Checked;
+      }
+
+      void showError(string message) {
+         MessageBox.Show(message, "Fehler", MessageBoxButtons.OK, MessageBoxIcon.Error);
+      }
+
+      public Bitmap GetImageFromScanner(out double widthmm, out double heightmm) {
+         widthmm = heightmm = 0;
+         if (scanner == null)
+            return null;
+
+         bool error = false;
+         try {
+
+            scanner.GetPaperSize(PaperSize.PaperSize, out double w, out double h);
+            widthmm = w;
+            heightmm = h;
+            if (!PaperSize.Portrait) {
+               double tmp = widthmm;
+               widthmm = heightmm;
+               heightmm = tmp;
+            }
+
+            scanner.SetProperties(Dpi,
+                                  (double)numericUpDown_DeltaX.Value, (double)numericUpDown_DeltaY.Value,
+                                  PaperSize.PaperSize,
+                                  PaperSize.Portrait,
+                                  ImageType,
+                                  Scanner.ImageTypeExt.Nothing,
+                                  Brightness,
+                                  Contrast);
+            Bitmap scanbm = scanner.GetImage(true, Dpi, Dpi);
+
+            //// reale Größe ermitteln
+            //w = 25.4 * scanbm.Width / scanbm.HorizontalResolution;
+            //h = 25.4 * scanbm.Height / scanbm.VerticalResolution;
+
+            return convertBitmap(scanbm,
+                                 radioButton_JPG.Checked ? ImageFormat.Jpeg :
+                                    radioButton_PNG.Checked ? ImageFormat.Png :
+                                    radioButton_TIF.Checked ? ImageFormat.Tiff :
+                                    ImageFormat.Bmp,
+                                 (int)numericUpDown_JPGQuali.Value);
+
+         } catch (COMException ex) {
+            showError(ErrorCodes.GetErrorText((uint)ex.ErrorCode));
+            error = true;
+         } catch (Exception ex) {
+            showError(ex.Message);
+            error = true;
+         } finally {
+            if (error) {
+               scanner = null;
+               init4Scanner(scanner);
+               scannerDataChanged();
+            }
+         }
+         return null;
+      }
+
+      static Bitmap convertBitmap(Bitmap bm, ImageFormat format, int jpegquali = 90) {
+         if (bm != null) {
+            MemoryStream ms = new MemoryStream();
+
+            if (!format.Equals(ImageFormat.Jpeg))
+               bm.Save(ms, format);
+            else {
+
+               // Create an Encoder object based on the GUID for the Quality parameter category.
+               System.Drawing.Imaging.Encoder myEncoder = System.Drawing.Imaging.Encoder.Quality;
+               // Create an EncoderParameters object. In this case, there is only one
+               // EncoderParameter object in the array.
+               EncoderParameters myEncoderParameters = new EncoderParameters(1);
+               // Save the bitmap with quality level ...
+               EncoderParameter myEncoderParameter = new EncoderParameter(myEncoder, Convert.ToInt32(jpegquali));
+               myEncoderParameters.Param[0] = myEncoderParameter;
+               // Get an ImageCodecInfo object that represents the JPEG codec.
+               ImageCodecInfo myImageCodecInfo = null;
+               ImageCodecInfo[] encoders = ImageCodecInfo.GetImageEncoders();
+               for (int j = 0; j < encoders.Length; j++)
+                  if (encoders[j].MimeType == "image/jpeg")
+                     myImageCodecInfo = encoders[j];
+               if (myImageCodecInfo != null)
+                  bm.Save(ms, myImageCodecInfo, myEncoderParameters);
+            }
+
+            if (ms.Length > 0)
+               return new Bitmap(ms);
+         }
+         return null;
+      }
+
+      void saveScannerStatus() {
+         if (appData != null) {
+            appData.ScannerName = ScannerName;
+            appData.ScannerDpi = (uint)Dpi;
+            appData.ScannerContrast = Contrast;
+            appData.ScannerBrightness = Brightness;
+            appData.ScannerImageType = ImageType.ToString();
+            appData.ScannerPaperSize = PaperSize != null ? PaperSize.ToString() : "";
+            appData.ScannerFiletype = Filetype;
+            appData.ScannerQuali = Quali;
+            appData.ScannerDeltaX = DeltaX;
+            appData.ScannerDeltaY = DeltaY;
+         }
+      }
+
+      void loadScannerStatus() {
+         if (appData != null) {
+
+            Cursor orgcursor = Cursor;
+            Scanner oldscanner = scanner;
+            try {
+               Cursor = Cursors.WaitCursor;
+               if (!string.IsNullOrEmpty(appData.ScannerName)) {
+                  scanner = getScanner4Name(appData.ScannerName);
+                  if (scanner != null) {
+                     init4Scanner(scanner);
+
+                     foreach (var item in Enum.GetValues(typeof(Scanner.ImageType))) {
+                        if (item.ToString() == appData.ScannerImageType) {
+                           ImageType = (Scanner.ImageType)item;
+                           break;
+                        }
+                     }
+
+                     int dpi = (int)appData.ScannerDpi;
+                     if (dpi > 0)
+                        Dpi = dpi;
+
+                     string[] papersize = appData.ScannerPaperSize.Split(' ');
+                     if (papersize.Length == 2) {
+                        bool portrait = Convert.ToBoolean(papersize[1]);
+                        foreach (var item in Enum.GetValues(typeof(Scanner.PaperSize))) {
+                           if (item.ToString() == papersize[0]) {
+                              PaperSize = new PaperSizeItem((Scanner.PaperSize)item, portrait);
+                              break;
+                           }
+                        }
+                     }
+
+                     double contrast = appData.ScannerContrast;
+                     if (-1 <= contrast && contrast <= 1)
+                        Contrast = contrast;
+
+                     double brightness = appData.ScannerBrightness;
+                     if (-1 <= brightness && brightness <= 1)
+                        Brightness = brightness;
+
+                     Filetype = appData.ScannerFiletype;
+
+                     double quali = appData.ScannerQuali;
+                     if (0 < quali && quali <= 100)
+                        Quali = (int)quali;
+
+                     DeltaX = appData.ScannerDeltaX;
+                     DeltaY = appData.ScannerDeltaY;
+
+                  }
+               }
+            } catch (Exception ex) {
+               Cursor = orgcursor;
+               showError(ex.Message);
+            }
+            Cursor = orgcursor;
+
+            if ((oldscanner != null) != (scanner != null))
+               scannerDataChanged();
+         }
+      }
+
+      Scanner getScanner4Name(string name) {
+         Scanner.GetScannerList(out List<string> names);
+         for (int i = 0; i < names.Count; i++) {
+            if (names[i] == name) {
+               return Scanner.Connect(i);
+            }
+         }
+         return null;
+      }
+
+      private void buttonScannerSideboard_Click(object sender, EventArgs e) {
+         Button btn = (sender as Button);
+         panelScannersideboard.Width = panelScannersideboard.Width > btn.Width ?
+                                          btn.Width :
+                                          stdPanelScannersideboardWidth;
+         btn.Image = btn.Width < panelScannersideboard.Width ?
+                        Properties.Resources.TriangleRight :
+                        Properties.Resources.TriangleLeft;
       }
 
       #endregion

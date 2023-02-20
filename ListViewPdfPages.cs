@@ -12,14 +12,14 @@ namespace PdfArranger {
       const double imageSizeFactor = 1.189;
 
       /// <summary>
-      /// Basisgröße für <see cref="imageSizeStep"/>==0
+      /// Basisgröße für <see cref="ImageSizeStep"/>==0
       /// </summary>
       const int baseImageSize = 32;
 
       /// <summary>
       /// akt. Größe für ImageList BaseImageSize.Width * ImageSizeFactor ^ ImageSizeStep -> 1 (0) ... 7,983 (12)
       /// </summary>
-      int imageSizeStep { get; set; } = 4;
+      public uint ImageSizeStep { get; protected set; } = 4;
 
       /// <summary>
       /// zum Speichern einmal berechneter Bildgrößen
@@ -238,6 +238,8 @@ namespace PdfArranger {
          get => listView1.Items.Count;
       }
 
+      AppData appData;
+
 
       #region Events
 
@@ -276,9 +278,6 @@ namespace PdfArranger {
       public ListViewPdfPages() {
          InitializeComponent();
 
-         //changeImageSize(ImageSize);
-         changeImageSize(0);
-
          listView1.View = View.LargeIcon;
          listView1.Scrollable = true;
 
@@ -305,6 +304,12 @@ namespace PdfArranger {
 
          listView1.BackColor = BackColor;
          listView1.ForeColor = ForeColor;
+      }
+
+      public void SetAppData(AppData appData) {
+         this.appData = appData;
+         ImageSizeStep = appData.ImageSizeStep;
+         ChangeImageSize(0);
       }
 
       #region public-Funktionen
@@ -721,6 +726,38 @@ namespace PdfArranger {
             return new Bitmap(ms);
          }
          return null;
+      }
+
+      /// <summary>
+      /// vergrößert bzw. verkleinert die Seitenanzeige
+      /// </summary>
+      /// <param name="stepdelta"></param>
+      /// <returns>true, wenn verändert</returns>
+      public bool ChangeImageSize(int stepdelta) {
+         if (0 <= (ImageSizeStep + stepdelta) && (ImageSizeStep + stepdelta) <= 12) {
+            int width = (int)(baseImageSize * Math.Pow(imageSizeFactor, ImageSizeStep + stepdelta));
+            if (width <= 256) {     // Max. Größe für eine ImageList !
+               ImageSizeStep = (uint)((int)ImageSizeStep + stepdelta);
+               appData.ImageSizeStep = ImageSizeStep;
+               changeImageSize(new Size(width, width));
+               return true;
+            }
+         }
+         if (stepdelta > 0)
+            MessageBox.Show("Max. Größe erreicht.", "Sorry", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+         else 
+            MessageBox.Show("Min. Größe erreicht.", "Sorry", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+         return false;
+      }
+
+      /// <summary>
+      /// markiert alle Seiten
+      /// </summary>
+      /// <returns>Seitenanzahl</returns>
+      public int SelectAllItems() {
+         for (int i = 0; i < listView1.Items.Count; i++)
+            listView1.Items[i].Selected = true;
+         return listView1.Items.Count;
       }
 
       #endregion
@@ -1181,7 +1218,7 @@ namespace PdfArranger {
       private void ListView1_MouseWheel(object sender, MouseEventArgs e) {
          if ((ModifierKeys & Keys.Control) == Keys.Control)
             if (e.Delta != 0)
-               changeImageSize(e.Delta > 0 ? 1 : -1);
+               ChangeImageSize(e.Delta > 0 ? 1 : -1);
       }
 
       private void ListView1_SelectedIndexChanged(object sender, EventArgs e) {
@@ -1243,16 +1280,6 @@ namespace PdfArranger {
          //   item.ListviewItem = null;
          //}
          //listView1.Refresh();
-      }
-
-      void changeImageSize(int stepdelta) {
-         if (0 <= (imageSizeStep + stepdelta) && (imageSizeStep + stepdelta) <= 12) {
-            int width = (int)(baseImageSize * Math.Pow(imageSizeFactor, imageSizeStep + stepdelta));
-            if (width <= 256) {     // Max. Größe für eine ImageList !
-               imageSizeStep += stepdelta;
-               changeImageSize(new Size(width, width));
-            }
-         }
       }
 
    }
